@@ -172,7 +172,7 @@ export default function AdminSubmissionsPage() {
                 placeholder="Search by Reference ID, Discord, Task ID..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="input-field pl-12"
+                className="input-field !pl-12"
               />
             </div>
             <div className="flex gap-2">

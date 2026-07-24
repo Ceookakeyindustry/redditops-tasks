@@ -89,7 +89,7 @@ export default function HomePage() {
                 placeholder="Search tasks by title or ID..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="input-field pl-12"
+                className="input-field !pl-12"
               />
             </div>
 

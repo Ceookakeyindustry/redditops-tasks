@@ -49,7 +49,7 @@ export default function StatusPage() {
                     setRefId(e.target.value);
                     setError('');
                   }}
-                  className="input-field pl-12 text-lg font-mono"
+                  className="input-field !pl-12 text-lg font-mono"
                   autoFocus
                 />
               </div>

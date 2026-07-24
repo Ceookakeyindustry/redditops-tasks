@@ -134,7 +134,7 @@ export default function AdminTasksPage() {
               placeholder="Search by task name, ID, or access code..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="input-field pl-12"
+              className="input-field !pl-12"
             />
           </div>
         </div>
