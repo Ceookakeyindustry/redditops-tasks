@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import TaskCard from '@/components/TaskCard';
-import ThreeDScene from '@/components/ThreeDScene';
 import ParticleBackground from '@/components/ParticleBackground';
 import AnimatedCounter from '@/components/AnimatedCounter';
 import type { Task } from '@/lib/types';
@@ -60,28 +59,26 @@ export default function HomePage() {
   return (
     <div className="flex-1">
       {/* Hero Section */}
-      <section className="relative overflow-hidden border-b border-[#2A2A2A] min-h-[70vh] flex items-center">
+      <section className="relative overflow-hidden border-b border-gray-200 min-h-[70vh] flex items-center">
         <ParticleBackground count={30} />
         <div className="absolute inset-0 bg-gradient-to-b from-[#8B5CF6]/8 via-transparent to-transparent pointer-events-none" />
         <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-[#8B5CF6]/5 rounded-full blur-3xl pointer-events-none animate-pulse-soft" />
         <div className="absolute bottom-0 left-1/4 w-[400px] h-[400px] bg-emerald-500/3 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 w-full">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            {/* Text Content */}
-            <div className="text-center lg:text-left">
+        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 w-full">
+          <div className="text-center">
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#8B5CF6]/10 border border-[#8B5CF6]/20 text-[#8B5CF6] text-sm font-medium mb-6 animate-fade-in">
                 <Sparkles className="w-4 h-4" />
                 Complete Reddit Tasks & Earn
               </div>
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 animate-slide-up">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 mb-6 animate-slide-up">
                 Browse{' '}
                 <span className="gradient-text">Available Tasks</span>
               </h1>
-              <p className="text-lg text-[#9CA3AF] mb-8 animate-fade-in max-w-lg">
+              <p className="text-lg text-gray-500 mb-8 animate-fade-in max-w-lg">
                 Find Reddit marketing tasks, complete them, and get paid. No account needed — just submit your proof.
               </p>
-              <div className="flex flex-wrap items-center gap-4 justify-center lg:justify-start animate-slide-up">
+              <div className="flex flex-wrap items-center gap-4 justify-center animate-slide-up">
                 <Link href="#tasks" className="btn-primary">
                   <TrendingUp className="w-4 h-4" />
                   Browse Tasks
@@ -92,49 +89,20 @@ export default function HomePage() {
                 </Link>
               </div>
               {/* Stats bar */}
-              <div className="flex items-center gap-8 mt-10 justify-center lg:justify-start">
+              <div className="flex items-center gap-8 mt-10 justify-center">
                 <div className="text-center">
                   <p className="text-2xl font-bold gradient-text">
                     <AnimatedCounter value={filteredTasks.length} duration={1500} suffix="+" />
                   </p>
-                  <p className="text-xs text-[#6B7280]">Live Tasks</p>
+                  <p className="text-xs text-gray-400">Live Tasks</p>
                 </div>
-                <div className="w-px h-10 bg-[#2A2A2A]" />
+                <div className="w-px h-10 bg-gray-200" />
                 <div className="text-center">
                   <p className="text-2xl font-bold gradient-text-green">
                     $<AnimatedCounter value={tasks.reduce((sum, t) => sum + t.payment, 0)} duration={1800} suffix="+" />
                   </p>
-                  <p className="text-xs text-[#6B7280]">Total Value</p>
-                </div>
-                <div className="w-px h-10 bg-[#2A2A2A]" />
-                <div className="text-center">
-                  <p className="text-2xl font-bold gradient-text-gold">Instant</p>
-                  <p className="text-xs text-[#6B7280]">Payout</p>
-                </div>
-              </div>
-            </div>
-
-            {/* 3D Scene */}
-            <div className="hidden lg:flex items-center justify-center animate-fade-in">
-              <div className="relative">
-                {/* Glow rings */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-[300px] h-[300px] rounded-full border border-[#8B5CF6]/10 animate-pulse-glow" />
-                </div>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-[200px] h-[200px] rounded-full border border-[#8B5CF6]/5 animate-float-slow" />
-                </div>
-                {/* Orbiting particles */}
-                <div className="orbit-container">
-                  <div className="orbit-item" />
-                  <div className="orbit-item" />
-                  <div className="orbit-item" />
-                  <div className="orbit-item" />
-                </div>
-                {/* 3D Cube */}
-                <ThreeDScene />
-              </div>
-            </div>
+                  <p className="text-xs text-gray-400">Total Value</p>
+                </div>            </div>
           </div>
         </div>
       </section>
@@ -145,7 +113,7 @@ export default function HomePage() {
           <div className="flex flex-col sm:flex-row gap-4">
             {/* Search */}
             <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#6B7280]" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
                 type="text"
                 placeholder="Search tasks by title or ID..."
@@ -162,7 +130,7 @@ export default function HomePage() {
                 className={`px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
                   filterType === 'all'
                     ? 'bg-[#8B5CF6] text-white'
-                    : 'bg-[#2A2A2A] text-[#9CA3AF] hover:text-white'
+                    : 'bg-gray-100 text-gray-500 hover:text-gray-900'
                 }`}
               >
                 All Tasks
@@ -172,7 +140,7 @@ export default function HomePage() {
                 className={`px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 inline-flex items-center gap-2 ${
                   filterType === 'comment'
                     ? 'bg-blue-500 text-white'
-                    : 'bg-[#2A2A2A] text-[#9CA3AF] hover:text-white'
+                    : 'bg-gray-100 text-gray-500 hover:text-gray-900'
                 }`}
               >
                 <MessageCircle className="w-4 h-4" />
@@ -183,7 +151,7 @@ export default function HomePage() {
                 className={`px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 inline-flex items-center gap-2 ${
                   filterType === 'post'
                     ? 'bg-emerald-500 text-white'
-                    : 'bg-[#2A2A2A] text-[#9CA3AF] hover:text-white'
+                    : 'bg-gray-100 text-gray-500 hover:text-gray-900'
                 }`}
               >
                 <FileText className="w-4 h-4" />
@@ -194,7 +162,7 @@ export default function HomePage() {
             {/* Sort */}
             <button
               onClick={() => setSortBy(sortBy === 'newest' ? 'highest' : 'newest')}
-              className="px-4 py-3 rounded-xl bg-[#2A2A2A] text-[#9CA3AF] hover:text-white text-sm font-medium transition-all duration-200 inline-flex items-center gap-2"
+              className="px-4 py-3 rounded-xl bg-gray-100 text-gray-500 hover:text-gray-900 text-sm font-medium transition-all duration-200 inline-flex items-center gap-2"
             >
               <ArrowUpDown className="w-4 h-4" />
               {sortBy === 'newest' ? 'Newest' : 'Highest Paying'}
@@ -221,11 +189,11 @@ export default function HomePage() {
           </div>
         ) : filteredTasks.length === 0 ? (
           <div className="text-center py-20">
-            <div className="w-20 h-20 rounded-2xl bg-[#2A2A2A] flex items-center justify-center mx-auto mb-6">
-              <Search className="w-10 h-10 text-[#6B7280]" />
+            <div className="w-20 h-20 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-6">
+              <Search className="w-10 h-10 text-gray-400" />
             </div>
-            <h3 className="text-xl font-semibold text-white mb-2">No tasks found</h3>
-            <p className="text-[#9CA3AF]">
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">No tasks found</h3>
+            <p className="text-gray-500">
               {tasks.length === 0
                 ? 'No tasks are available yet. Check back later!'
                 : 'Try adjusting your search or filters.'}

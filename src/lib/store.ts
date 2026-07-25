@@ -108,12 +108,13 @@ export function getTaskSubmissions(taskId: string): Submission[] {
   return getSubmissions().filter(s => s.taskId === taskId);
 }
 
-export function createSubmission(data: Omit<Submission, 'refId' | 'submittedAt' | 'status'>): Submission {
+export function createSubmission(data: Omit<Submission, 'refId' | 'submittedAt' | 'status' | 'isPaid'>): Submission {
   const submissions = getSubmissions();
   const submission: Submission = {
     ...data,
     refId: generateRefId(),
     status: 'pending',
+    isPaid: false,
     submittedAt: new Date().toISOString(),
   };
   submissions.push(submission);
@@ -141,16 +142,17 @@ export function updateSubmission(refId: string, data: Partial<Submission>): Subm
 export function getDashboardStats(): DashboardStats {
   const tasks = getTasks();
   const submissions = getSubmissions();
+  const approved = submissions.filter(s => s.status === 'approved');
   return {
     totalTasks: tasks.length,
     activeTasks: tasks.filter(t => t.isActive).length,
     totalSubmissions: submissions.length,
     pendingSubmissions: submissions.filter(s => s.status === 'pending').length,
-    approvedSubmissions: submissions.filter(s => s.status === 'approved').length,
+    approvedSubmissions: approved.length,
     rejectedSubmissions: submissions.filter(s => s.status === 'rejected').length,
-    totalPayout: submissions
-      .filter(s => s.status === 'approved')
-      .reduce((sum, s) => sum + s.payment, 0),
+    totalPayout: approved.reduce((sum, s) => sum + s.payment, 0),
+    paidPayout: approved.filter(s => s.isPaid).reduce((sum, s) => sum + s.payment, 0),
+    unpaidPayout: approved.filter(s => !s.isPaid).reduce((sum, s) => sum + s.payment, 0),
   };
 }
 

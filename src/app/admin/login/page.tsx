@@ -40,13 +40,13 @@ export default function AdminLoginPage() {
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#8B5CF6] to-[#7C3AED] flex items-center justify-center mx-auto mb-6 shadow-lg shadow-purple-500/20">
               <Shield className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-white mb-2">Admin Login</h1>
-            <p className="text-[#9CA3AF]">Sign in to manage tasks and submissions.</p>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Admin Login</h1>
+            <p className="text-gray-500">Sign in to manage tasks and submissions.</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-[#9CA3AF] mb-2">
+              <label className="block text-sm font-medium text-gray-500 mb-2">
                 Username
               </label>
               <input
@@ -64,7 +64,7 @@ export default function AdminLoginPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-[#9CA3AF] mb-2">
+              <label className="block text-sm font-medium text-gray-500 mb-2">
                 Password
               </label>
               <div className="relative">
@@ -82,7 +82,7 @@ export default function AdminLoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[#6B7280] hover:text-[#9CA3AF] transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-500 transition-colors"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>

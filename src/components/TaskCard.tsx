@@ -27,11 +27,11 @@ export default function TaskCard({ task }: TaskCardProps) {
             )}
             {task.type === 'comment' ? 'Comment Task' : 'Post Task'}
           </span>
-          <span className="text-xs text-[#6B7280] font-mono">{task.taskId}</span>
+          <span className="text-xs text-gray-400 font-mono">{task.taskId}</span>
         </div>
 
         {/* Title */}
-        <h3 className="text-lg font-semibold text-white mb-3 group-hover:text-[#8B5CF6] transition-colors duration-200 line-clamp-2">
+        <h3 className="text-lg font-semibold text-gray-900 mb-3 group-hover:text-[#8B5CF6] transition-colors duration-200 line-clamp-2">
           {task.title}
         </h3>
 
@@ -47,15 +47,15 @@ export default function TaskCard({ task }: TaskCardProps) {
 
         {/* Requirements Preview */}
         {task.requirements && (
-          <p className="text-sm text-[#6B7280] line-clamp-2 mb-4 flex-grow">
+          <p className="text-sm text-gray-400 line-clamp-2 mb-4 flex-grow">
             {task.requirements}
           </p>
         )}
 
         {/* Footer */}
-        <div className="flex items-center gap-4 pt-4 border-t border-[#2A2A2A] mt-auto">
+        <div className="flex items-center gap-4 pt-4 border-t border-gray-200 mt-auto">
           {task.maxCompletions && (
-            <div className="flex items-center gap-1.5 text-xs text-[#6B7280]">
+            <div className="flex items-center gap-1.5 text-xs text-gray-400">
               <Users className="w-3.5 h-3.5" />
               <span>{task.completedCount || 0}/{task.maxCompletions}</span>
             </div>

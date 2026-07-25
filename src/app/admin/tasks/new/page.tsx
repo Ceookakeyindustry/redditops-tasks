@@ -154,18 +154,18 @@ export default function NewTaskPage() {
         {/* Back Button */}
         <Link
           href="/admin/dashboard"
-          className="inline-flex items-center gap-2 text-[#9CA3AF] hover:text-white transition-colors mb-6"
+          className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors mb-6"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Dashboard
         </Link>
 
-        <h1 className="text-2xl sm:text-3xl font-bold text-white mb-8">Create New Task</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-8">Create New Task</h1>
 
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Task Type Selection */}
           <div className="card p-6">
-            <label className="block text-sm font-medium text-[#9CA3AF] mb-4">
+            <label className="block text-sm font-medium text-gray-500 mb-4">
               Task Type
             </label>
             <div className="grid grid-cols-2 gap-4">
@@ -181,8 +181,8 @@ export default function NewTaskPage() {
                 <div className="w-10 h-10 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mb-3">
                   <MessageCircle className="w-5 h-5 text-blue-400" />
                 </div>
-                <h3 className="text-white font-semibold mb-1">Comment Task</h3>
-                <p className="text-[#9CA3AF] text-xs">Users post a comment on a Reddit post</p>
+                <h3 className="text-gray-900 font-semibold mb-1">Comment Task</h3>
+                <p className="text-gray-500 text-xs">Users post a comment on a Reddit post</p>
               </button>
               <button
                 type="button"
@@ -196,18 +196,18 @@ export default function NewTaskPage() {
                 <div className="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-3">
                   <FileText className="w-5 h-5 text-emerald-400" />
                 </div>
-                <h3 className="text-white font-semibold mb-1">Post Task</h3>
-                <p className="text-[#9CA3AF] text-xs">Users create a new Reddit post</p>
+                <h3 className="text-gray-900 font-semibold mb-1">Post Task</h3>
+                <p className="text-gray-500 text-xs">Users create a new Reddit post</p>
               </button>
             </div>
           </div>
 
           {/* Basic Fields */}
           <div className="card p-6 space-y-4">
-            <h2 className="text-lg font-semibold text-white mb-4">Basic Information</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Basic Information</h2>
 
             <div>
-              <label className="block text-sm font-medium text-[#9CA3AF] mb-2">
+              <label className="block text-sm font-medium text-gray-500 mb-2">
                 Task Title *
               </label>
               <input
@@ -222,7 +222,7 @@ export default function NewTaskPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-[#9CA3AF] mb-2">
+                <label className="block text-sm font-medium text-gray-500 mb-2">
                   Payment ($) *
                 </label>
                 <input
@@ -237,7 +237,7 @@ export default function NewTaskPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-[#9CA3AF] mb-2">
+                <label className="block text-sm font-medium text-gray-500 mb-2">
                   Max Completions
                 </label>
                 <input
@@ -252,7 +252,7 @@ export default function NewTaskPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-[#9CA3AF] mb-2">
+              <label className="block text-sm font-medium text-gray-500 mb-2">
                 Requirements
               </label>
               <textarea
@@ -265,7 +265,7 @@ export default function NewTaskPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-[#9CA3AF] mb-2">
+              <label className="block text-sm font-medium text-gray-500 mb-2">
                 Instructions
               </label>
               <textarea
@@ -281,8 +281,8 @@ export default function NewTaskPage() {
           {/* Access Code */}
           <div className="card p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-white">Access Code</h2>
-              <label className="flex items-center gap-2 text-sm text-[#9CA3AF] cursor-pointer">
+              <h2 className="text-lg font-semibold text-gray-900">Access Code</h2>
+              <label className="flex items-center gap-2 text-sm text-gray-500 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={useCustomCode}
@@ -326,7 +326,7 @@ export default function NewTaskPage() {
                 {codeCopied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
               </button>
             </div>
-            <p className="text-xs text-[#6B7280] mt-2">
+            <p className="text-xs text-gray-400 mt-2">
               Users must enter this case-sensitive code to view the task.
             </p>
           </div>
@@ -334,10 +334,10 @@ export default function NewTaskPage() {
           {/* Comment-specific Fields */}
           {taskType === 'comment' && (
             <div className="card p-6 space-y-4">
-              <h2 className="text-lg font-semibold text-white">Comment Task Details</h2>
+              <h2 className="text-lg font-semibold text-gray-900">Comment Task Details</h2>
 
               <div>
-                <label className="block text-sm font-medium text-[#9CA3AF] mb-2">
+                <label className="block text-sm font-medium text-gray-500 mb-2">
                   Reddit Post URL
                 </label>
                 <input
@@ -350,7 +350,7 @@ export default function NewTaskPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-[#9CA3AF] mb-2">
+                <label className="block text-sm font-medium text-gray-500 mb-2">
                   Comment Text
                 </label>
                 <textarea
@@ -367,10 +367,10 @@ export default function NewTaskPage() {
           {/* Post-specific Fields */}
           {taskType === 'post' && (
             <div className="card p-6 space-y-4">
-              <h2 className="text-lg font-semibold text-white">Post Task Details</h2>
+              <h2 className="text-lg font-semibold text-gray-900">Post Task Details</h2>
 
               <div>
-                <label className="block text-sm font-medium text-[#9CA3AF] mb-2">
+                <label className="block text-sm font-medium text-gray-500 mb-2">
                   Target Subreddit(s)
                 </label>
                 <input
@@ -383,7 +383,7 @@ export default function NewTaskPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-[#9CA3AF] mb-2">
+                <label className="block text-sm font-medium text-gray-500 mb-2">
                   Suggested Post Title
                 </label>
                 <input
@@ -396,7 +396,7 @@ export default function NewTaskPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-[#9CA3AF] mb-2">
+                <label className="block text-sm font-medium text-gray-500 mb-2">
                   Suggested Body Text
                 </label>
                 <textarea
@@ -410,7 +410,7 @@ export default function NewTaskPage() {
 
               {/* Images */}
               <div>
-                <label className="block text-sm font-medium text-[#9CA3AF] mb-2">
+                <label className="block text-sm font-medium text-gray-500 mb-2">
                   Images
                 </label>
                 <div className="flex flex-wrap gap-3 mb-3">
@@ -442,7 +442,7 @@ export default function NewTaskPage() {
 
               {/* Video */}
               <div>
-                <label className="block text-sm font-medium text-[#9CA3AF] mb-2">
+                <label className="block text-sm font-medium text-gray-500 mb-2">
                   Video (optional)
                 </label>
                 {video && (

@@ -36,7 +36,7 @@ export default function CopyButton({ text, label = 'Copy', className = '' }: Cop
       className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
         copied
           ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-          : 'bg-[#2A2A2A] text-[#9CA3AF] border border-[#2A2A2A] hover:border-[#8B5CF6]/30 hover:text-white'
+          : 'bg-gray-100 text-gray-500 border border-gray-200 hover:border-[#8B5CF6]/30 hover:text-gray-900'
       } ${className}`}
     >
       {copied ? (

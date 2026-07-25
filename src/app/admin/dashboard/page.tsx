@@ -145,6 +145,24 @@ export default function AdminDashboardPage() {
       border: 'border-emerald-500/20',
       isPayout: true,
     },
+    {
+      label: 'Paid',
+      value: formatPayment(stats?.paidPayout || 0),
+      icon: CheckCircle,
+      color: 'text-[#8B5CF6]',
+      bg: 'bg-[#8B5CF6]/10',
+      border: 'border-[#8B5CF6]/20',
+      isPayout: true,
+    },
+    {
+      label: 'Unpaid',
+      value: formatPayment(stats?.unpaidPayout || 0),
+      icon: DollarSign,
+      color: 'text-[#F59E0B]',
+      bg: 'bg-[#F59E0B]/10',
+      border: 'border-[#F59E0B]/20',
+      isPayout: true,
+    },
   ];
 
   return (
@@ -153,11 +171,11 @@ export default function AdminDashboardPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-3">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-3">
               <LayoutDashboard className="w-8 h-8 text-[#8B5CF6]" />
               Dashboard
             </h1>
-            <p className="text-[#9CA3AF] mt-1">Manage your tasks and submissions.</p>
+            <p className="text-gray-500 mt-1">Manage your tasks and submissions.</p>
           </div>
           <div className="flex items-center gap-3">
             <Link href="/admin/tasks/new" className="btn-primary">
@@ -184,7 +202,7 @@ export default function AdminDashboardPage() {
                   <card.icon className={`w-5 h-5 ${card.color}`} />
                 </div>
               </div>
-              <p className="text-2xl font-bold text-white mb-1">
+              <p className="text-2xl font-bold text-gray-900 mb-1">
                 {card.isPayout ? (
                   card.value
                 ) : card.isCurrency ? (
@@ -193,7 +211,7 @@ export default function AdminDashboardPage() {
                   <AnimatedCounter value={Number(card.value)} duration={1200 + idx * 100} />
                 )}
               </p>
-              <p className="text-xs text-[#6B7280]">{card.label}</p>
+              <p className="text-xs text-gray-400">{card.label}</p>
             </div>
           ))}
         </div>
@@ -209,8 +227,8 @@ export default function AdminDashboardPage() {
                 <FileText className="w-6 h-6 text-[#8B5CF6]" />
               </div>
               <div>
-                <h3 className="text-white font-semibold">Manage Tasks</h3>
-                <p className="text-[#9CA3AF] text-sm">View, edit, copy IDs, delete</p>
+                <h3 className="text-gray-900 font-semibold">Manage Tasks</h3>
+                <p className="text-gray-500 text-sm">View, edit, copy IDs, delete</p>
               </div>
             </div>
           </Link>
@@ -224,8 +242,8 @@ export default function AdminDashboardPage() {
                 <Clock className="w-6 h-6 text-[#F59E0B]" />
               </div>
               <div>
-                <h3 className="text-white font-semibold">Review Submissions</h3>
-                <p className="text-[#9CA3AF] text-sm">
+                <h3 className="text-gray-900 font-semibold">Review Submissions</h3>
+                <p className="text-gray-500 text-sm">
                   {stats?.pendingSubmissions || 0} pending review
                 </p>
               </div>
@@ -241,8 +259,8 @@ export default function AdminDashboardPage() {
                 <TrendingUp className="w-6 h-6 text-emerald-400" />
               </div>
               <div>
-                <h3 className="text-white font-semibold">View Public Tasks</h3>
-                <p className="text-[#9CA3AF] text-sm">See tasks as users see them</p>
+                <h3 className="text-gray-900 font-semibold">View Public Tasks</h3>
+                <p className="text-gray-500 text-sm">See tasks as users see them</p>
               </div>
             </div>
           </Link>
@@ -252,11 +270,11 @@ export default function AdminDashboardPage() {
         <div className="card p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                 <FileText className="w-5 h-5 text-[#8B5CF6]" />
                 Recent Tasks
               </h2>
-              <p className="text-[#9CA3AF] text-sm mt-1">Quick overview of your latest tasks</p>
+              <p className="text-gray-500 text-sm mt-1">Quick overview of your latest tasks</p>
             </div>
             <Link href="/admin/tasks" className="btn-secondary text-sm px-4 py-2">
               View All
@@ -265,7 +283,7 @@ export default function AdminDashboardPage() {
 
           {recentTasks.length === 0 ? (
             <div className="text-center py-10">
-              <p className="text-[#9CA3AF]">No tasks created yet.</p>
+              <p className="text-gray-500">No tasks created yet.</p>
               <Link href="/admin/tasks/new" className="text-[#8B5CF6] hover:text-[#A78BFA] text-sm font-medium mt-2 inline-block">
                 Create your first task →
               </Link>
@@ -275,7 +293,7 @@ export default function AdminDashboardPage() {
               {recentTasks.map((task, idx) => (
                 <div
                   key={task.id}
-                  className="flex items-center gap-4 p-4 rounded-xl bg-[#2A2A2A] border border-[#2A2A2A] hover:border-[#8B5CF6]/20 transition-all animate-fade-in group"
+                  className="flex items-center gap-4 p-4 rounded-xl bg-gray-50 border border-gray-200 hover:border-[#8B5CF6]/20 transition-all animate-fade-in group"
                   style={{ animationDelay: `${idx * 80}ms` }}
                 >
                   {/* Icon */}
@@ -301,15 +319,15 @@ export default function AdminDashboardPage() {
                         {task.isActive ? 'Active' : 'Inactive'}
                       </span>
                     </div>
-                    <p className="text-white text-sm font-medium truncate">{task.title}</p>
-                    <p className="text-xs text-[#6B7280] mt-0.5">{formatDate(task.createdAt)}</p>
+                    <p className="text-gray-900 text-sm font-medium truncate">{task.title}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{formatDate(task.createdAt)}</p>
                   </div>
 
                   {/* Pricing */}
                   <div className="text-right flex-shrink-0">
                     <p className="text-sm font-bold text-emerald-400">{formatPayment(task.payment)}</p>
                     {task.maxCompletions && (
-                      <p className="text-xs text-[#6B7280]">{task.completedCount || 0}/{task.maxCompletions}</p>
+                      <p className="text-xs text-gray-400">{task.completedCount || 0}/{task.maxCompletions}</p>
                     )}
                   </div>
 
@@ -317,7 +335,7 @@ export default function AdminDashboardPage() {
                   <div className="flex items-center gap-2">
                     <Link
                       href={`/admin/tasks/${task.taskId}/edit`}
-                      className="px-3 py-2 rounded-lg bg-[#181818] text-[#9CA3AF] border border-[#2A2A2A] hover:border-[#8B5CF6]/30 hover:text-white text-xs font-medium transition-all"
+                      className="px-3 py-2 rounded-lg bg-white text-gray-500 border border-gray-200 hover:border-[#8B5CF6]/30 hover:text-gray-900 text-xs font-medium transition-all"
                     >
                       Edit
                     </Link>

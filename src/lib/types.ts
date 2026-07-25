@@ -46,6 +46,8 @@ export interface Submission {
   rejectionReason?: string;
   adminNote?: string;
   submittedAt: string;
+  isPaid: boolean;
+  paidAt?: string;
 }
 
 export interface AdminSession {
@@ -61,6 +63,8 @@ export interface DashboardStats {
   approvedSubmissions: number;
   rejectedSubmissions: number;
   totalPayout: number;
+  paidPayout: number;
+  unpaidPayout: number;
 }
 
 export const PRESET_REJECTION_REASONS = [

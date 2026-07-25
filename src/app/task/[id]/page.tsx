@@ -112,7 +112,7 @@ export default function TaskPage() {
       <div className="flex-1 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 rounded-full border-2 border-[#8B5CF6] border-t-transparent animate-spin" />
-          <p className="text-[#9CA3AF] text-sm">Loading task...</p>
+          <p className="text-gray-500 text-sm">Loading task...</p>
         </div>
       </div>
     );
@@ -122,11 +122,11 @@ export default function TaskPage() {
     return (
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center max-w-md mx-auto px-4">
-          <div className="w-20 h-20 rounded-2xl bg-[#2A2A2A] flex items-center justify-center mx-auto mb-6">
-            <AlertTriangle className="w-10 h-10 text-[#6B7280]" />
+          <div className="w-20 h-20 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-6">
+            <AlertTriangle className="w-10 h-10 text-gray-400" />
           </div>
-          <h2 className="text-2xl font-bold text-white mb-3">Task Not Found</h2>
-          <p className="text-[#9CA3AF] mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 mb-3">Task Not Found</h2>
+          <p className="text-gray-500 mb-6">
             The task you&apos;re looking for doesn&apos;t exist or has been removed.
           </p>
           <Link href="/" className="btn-primary inline-flex">
@@ -147,26 +147,26 @@ export default function TaskPage() {
               <Lock className="w-8 h-8 text-[#8B5CF6]" />
             </div>
 
-            <h2 className="text-2xl font-bold text-white mb-2">Task Locked</h2>
-            <p className="text-[#9CA3AF] mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Task Locked</h2>
+            <p className="text-gray-500 mb-8">
               Enter the Task ID and Access Code to view this task.
             </p>
 
             <div className="space-y-4 text-left">
               <div>
-                <label className="block text-sm font-medium text-[#9CA3AF] mb-2">
+                <label className="block text-sm font-medium text-gray-500 mb-2">
                   Task ID
                 </label>
                 <input
                   type="text"
                   value={taskId}
                   readOnly
-                  className="input-field bg-[#2A2A2A] text-[#9CA3AF] cursor-not-allowed"
+                  className="input-field bg-gray-100 text-gray-400 cursor-not-allowed"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-[#9CA3AF] mb-2">
+                <label className="block text-sm font-medium text-gray-500 mb-2">
                   Access Code
                 </label>
                 <input
@@ -228,7 +228,7 @@ export default function TaskPage() {
 
         {/* Title & Payment */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 animate-slide-up">
-          <h1 className="text-3xl sm:text-4xl font-bold text-white">{task.title}</h1>
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900">{task.title}</h1>
           <div className="flex items-center gap-2 px-5 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex-shrink-0">
             <DollarSign className="w-6 h-6 text-emerald-400" />
             <span className="text-2xl font-bold text-emerald-400">{formatPayment(task.payment)}</span>
@@ -241,12 +241,12 @@ export default function TaskPage() {
             {/* Requirements */}
             {task.requirements && (
               <div className="card p-6 animate-fade-in">
-                <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                   <AlertTriangle className="w-5 h-5 text-[#F59E0B]" />
                   Requirements
                 </h2>
                 <div className="prose prose-invert max-w-none">
-                  <p className="text-[#9CA3AF] leading-relaxed whitespace-pre-wrap">{task.requirements}</p>
+                  <p className="text-gray-500 leading-relaxed whitespace-pre-wrap">{task.requirements}</p>
                 </div>
               </div>
             )}
@@ -254,8 +254,8 @@ export default function TaskPage() {
             {/* Instructions */}
             {task.instructions && (
               <div className="card p-6 animate-fade-in">
-                <h2 className="text-lg font-semibold text-white mb-4">Instructions</h2>
-                <p className="text-[#9CA3AF] leading-relaxed whitespace-pre-wrap">{task.instructions}</p>
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Instructions</h2>
+                <p className="text-gray-500 leading-relaxed whitespace-pre-wrap">{task.instructions}</p>
               </div>
             )}
 
@@ -264,7 +264,7 @@ export default function TaskPage() {
               <>
                 {task.redditPostUrl && (
                   <div className="card p-6 animate-fade-in">
-                    <h2 className="text-lg font-semibold text-white mb-4">Reddit Post</h2>
+                    <h2 className="text-lg font-semibold text-gray-900 mb-4">Reddit Post</h2>
                     <a
                       href={task.redditPostUrl}
                       target="_blank"
@@ -280,11 +280,11 @@ export default function TaskPage() {
                 {task.commentText && (
                   <div className="card p-6 animate-fade-in">
                     <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-lg font-semibold text-white">Comment to Post</h2>
+                      <h2 className="text-lg font-semibold text-gray-900">Comment to Post</h2>
                       <CopyButton text={task.commentText} label="Copy Comment" />
                     </div>
-                    <div className="p-4 rounded-xl bg-[#2A2A2A] border border-[#2A2A2A]">
-                      <p className="text-[#D1D5DB] leading-relaxed whitespace-pre-wrap">{task.commentText}</p>
+                    <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
+                      <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{task.commentText}</p>
                     </div>
                   </div>
                 )}
@@ -296,29 +296,29 @@ export default function TaskPage() {
               <>
                 {task.targetSubreddits && (
                   <div className="card p-6 animate-fade-in">
-                    <h2 className="text-lg font-semibold text-white mb-4">Target Subreddit(s)</h2>
-                    <p className="text-[#9CA3AF]">{task.targetSubreddits}</p>
+                    <h2 className="text-lg font-semibold text-gray-900 mb-4">Target Subreddit(s)</h2>
+                    <p className="text-gray-500">{task.targetSubreddits}</p>
                   </div>
                 )}
 
                 {task.suggestedTitle && (
                   <div className="card p-6 animate-fade-in">
                     <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-lg font-semibold text-white">Suggested Title</h2>
+                      <h2 className="text-lg font-semibold text-gray-900">Suggested Title</h2>
                       <CopyButton text={task.suggestedTitle} label="Copy Title" />
                     </div>
-                    <p className="text-[#D1D5DB]">{task.suggestedTitle}</p>
+                    <p className="text-gray-700">{task.suggestedTitle}</p>
                   </div>
                 )}
 
                 {task.suggestedBody && (
                   <div className="card p-6 animate-fade-in">
                     <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-lg font-semibold text-white">Suggested Body</h2>
+                      <h2 className="text-lg font-semibold text-gray-900">Suggested Body</h2>
                       <CopyButton text={task.suggestedBody} label="Copy Body" />
                     </div>
-                    <div className="p-4 rounded-xl bg-[#2A2A2A] border border-[#2A2A2A]">
-                      <p className="text-[#D1D5DB] leading-relaxed whitespace-pre-wrap">{task.suggestedBody}</p>
+                    <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
+                      <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{task.suggestedBody}</p>
                     </div>
                   </div>
                 )}
@@ -326,13 +326,13 @@ export default function TaskPage() {
                 {/* Images */}
                 {task.images && task.images.length > 0 && (
                   <div className="card p-6 animate-fade-in">
-                    <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                    <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                       <Image className="w-5 h-5" />
                       Images
                     </h2>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                       {task.images.map((img, idx) => (
-                        <div key={idx} className="relative aspect-video rounded-xl overflow-hidden bg-[#2A2A2A]">
+                        <div key={idx} className="relative aspect-video rounded-xl overflow-hidden bg-gray-100">
                           <img
                             src={img}
                             alt={`Uploaded image ${idx + 1} for this task`}
@@ -347,11 +347,11 @@ export default function TaskPage() {
                 {/* Video */}
                 {task.video && (
                   <div className="card p-6 animate-fade-in">
-                    <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                    <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                       <Video className="w-5 h-5" />
                       Video
                     </h2>
-                    <div className="aspect-video rounded-xl overflow-hidden bg-[#2A2A2A]">
+                    <div className="aspect-video rounded-xl overflow-hidden bg-gray-100">
                       <video controls className="w-full h-full">
                         <source src={task.video} />
                         Your browser does not support the video tag.
@@ -366,12 +366,12 @@ export default function TaskPage() {
             {task.maxCompletions && (
               <div className="card p-6 animate-fade-in">
                 <div className="flex items-center justify-between">
-                  <span className="text-[#9CA3AF]">Completions</span>
-                  <span className="text-white font-semibold">
+                  <span className="text-gray-500">Completions</span>
+                  <span className="text-gray-900 font-semibold">
                     {task.completedCount || 0} / {task.maxCompletions}
                   </span>
                 </div>
-                <div className="mt-3 w-full bg-[#2A2A2A] rounded-full h-2 overflow-hidden">
+                <div className="mt-3 w-full bg-gray-200 rounded-full h-2 overflow-hidden">
                   <div
                     className="h-full rounded-full bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] transition-all duration-500"
                     style={{ width: `${Math.min(((task.completedCount || 0) / task.maxCompletions) * 100, 100)}%` }}
@@ -390,11 +390,11 @@ export default function TaskPage() {
                   <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-4">
                     <Check className="w-8 h-8 text-emerald-400" />
                   </div>
-                  <h3 className="text-lg font-semibold text-white mb-2">Submitted Successfully!</h3>
-                  <p className="text-[#9CA3AF] text-sm mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Submitted Successfully!</h3>
+                  <p className="text-gray-500 text-sm mb-4">
                     Save your reference ID to check your submission status.
                   </p>
-                  <div className="p-3 rounded-xl bg-[#2A2A2A] border border-[#2A2A2A] mb-4">
+                  <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 mb-4">
                     <CopyButton text={submitted.refId} label={`Copy: ${submitted.refId}`} />
                   </div>
                   <Link href={`/status/${submitted.refId}`} className="text-[#8B5CF6] hover:text-[#A78BFA] text-sm font-medium transition-colors">
@@ -403,12 +403,12 @@ export default function TaskPage() {
                 </div>
               ) : showSubmitForm ? (
                 <form onSubmit={handleSubmit} className="space-y-4">
-                  <h3 className="text-lg font-semibold text-white mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
                     Submit Your Work
                   </h3>
 
                   <div>
-                    <label className="block text-sm font-medium text-[#9CA3AF] mb-2">
+                    <label className="block text-sm font-medium text-gray-500 mb-2">
                       Discord Username *
                     </label>
                     <input
@@ -422,7 +422,7 @@ export default function TaskPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-[#9CA3AF] mb-2">
+                    <label className="block text-sm font-medium text-gray-500 mb-2">
                       Reddit Proof Link *
                     </label>
                     <input
@@ -436,7 +436,7 @@ export default function TaskPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-[#9CA3AF] mb-2">
+                    <label className="block text-sm font-medium text-gray-500 mb-2">
                       Optional Note
                     </label>
                     <textarea
@@ -481,10 +481,10 @@ export default function TaskPage() {
                 </form>
               ) : (
                 <div>
-                  <h3 className="text-lg font-semibold text-white mb-2">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
                     Ready to complete this task?
                   </h3>
-                  <p className="text-[#9CA3AF] text-sm mb-6">
+                  <p className="text-gray-500 text-sm mb-6">
                     Submit your proof of completion to earn {formatPayment(task.payment)}.
                   </p>
                   <button
@@ -494,7 +494,7 @@ export default function TaskPage() {
                     <Send className="w-4 h-4" />
                     Submit Task
                   </button>
-                  <p className="text-xs text-[#6B7280] text-center mt-4">
+                  <p className="text-xs text-gray-400 text-center mt-4">
                     You&apos;ll receive a unique reference ID after submission.
                   </p>
                 </div>

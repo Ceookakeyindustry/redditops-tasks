@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Globe, Shield, Menu, X } from 'lucide-react';
+import Image from 'next/image';
+import { Shield, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 
 export default function Header() {
@@ -11,18 +12,19 @@ export default function Header() {
   const isAdmin = pathname.startsWith('/admin');
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[#2A2A2A] glass">
+    <header className="sticky top-0 z-50 border-b border-gray-200 glass">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#8B5CF6] to-[#7C3AED] flex items-center justify-center shadow-lg shadow-purple-500/20 group-hover:shadow-purple-500/30 transition-all duration-300">
-              <Globe className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <span className="text-lg font-bold text-white">RedditOps</span>
-              <span className="text-lg font-bold text-[#8B5CF6] ml-1">Tasks</span>
-            </div>
+          <Link href="/" className="flex items-center gap-2 group">
+            <Image
+              src="/logo.svg"
+              alt="RedditOps Tasks"
+              width={140}
+              height={32}
+              className="h-8 w-auto"
+              priority
+            />
           </Link>
 
           {/* Desktop Nav */}
@@ -30,7 +32,7 @@ export default function Header() {
             <Link
               href="/"
               className={`text-sm font-medium transition-colors duration-200 ${
-                pathname === '/' ? 'text-[#8B5CF6]' : 'text-[#9CA3AF] hover:text-white'
+                pathname === '/' ? 'text-[#8B5CF6]' : 'text-gray-500 hover:text-gray-900'
               }`}
             >
               Browse Tasks
@@ -38,7 +40,7 @@ export default function Header() {
             <Link
               href="/status"
               className={`text-sm font-medium transition-colors duration-200 ${
-                pathname === '/status' ? 'text-[#8B5CF6]' : 'text-[#9CA3AF] hover:text-white'
+                pathname === '/status' ? 'text-[#8B5CF6]' : 'text-gray-500 hover:text-gray-900'
               }`}
             >
               Check Status
@@ -54,7 +56,7 @@ export default function Header() {
             ) : (
               <Link
                 href="/admin/login"
-                className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2A2A2A] text-[#9CA3AF] text-sm font-medium hover:border-[#8B5CF6]/30 hover:text-white transition-all duration-200"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 text-gray-500 text-sm font-medium hover:border-[#8B5CF6]/30 hover:text-gray-900 transition-all duration-200"
               >
                 <Shield className="w-4 h-4" />
                 Admin Login
@@ -65,7 +67,7 @@ export default function Header() {
           {/* Mobile Menu Button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 rounded-lg text-[#9CA3AF] hover:text-white hover:bg-[#2A2A2A] transition-all"
+            className="md:hidden p-2 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-all"
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
@@ -74,13 +76,13 @@ export default function Header() {
 
       {/* Mobile Nav */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-[#2A2A2A] glass animate-fade-in">
+        <div className="md:hidden border-t border-gray-200 glass animate-fade-in">
           <div className="px-4 py-4 space-y-3">
             <Link
               href="/"
               onClick={() => setMobileMenuOpen(false)}
               className={`block px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                pathname === '/' ? 'bg-[#8B5CF6]/10 text-[#8B5CF6]' : 'text-[#9CA3AF] hover:bg-[#2A2A2A] hover:text-white'
+                pathname === '/' ? 'bg-[#8B5CF6]/10 text-[#8B5CF6]' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
               }`}
             >
               Browse Tasks
@@ -89,7 +91,7 @@ export default function Header() {
               href="/status"
               onClick={() => setMobileMenuOpen(false)}
               className={`block px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                pathname === '/status' ? 'bg-[#8B5CF6]/10 text-[#8B5CF6]' : 'text-[#9CA3AF] hover:bg-[#2A2A2A] hover:text-white'
+                pathname === '/status' ? 'bg-[#8B5CF6]/10 text-[#8B5CF6]' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
               }`}
             >
               Check Status
@@ -97,7 +99,7 @@ export default function Header() {
             <Link
               href="/admin/login"
               onClick={() => setMobileMenuOpen(false)}
-              className="block px-4 py-3 rounded-xl text-sm font-medium text-[#9CA3AF] hover:bg-[#2A2A2A] hover:text-white transition-all"
+              className="block px-4 py-3 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-all"
             >
               Admin Login
             </Link>

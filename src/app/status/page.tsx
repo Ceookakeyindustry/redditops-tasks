@@ -26,21 +26,21 @@ export default function StatusPage() {
             <div className="w-16 h-16 rounded-2xl bg-[#8B5CF6]/10 border border-[#8B5CF6]/20 flex items-center justify-center mx-auto mb-6">
               <ClipboardList className="w-8 h-8 text-[#8B5CF6]" />
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-3">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">
               Check Submission Status
             </h1>
-            <p className="text-[#9CA3AF]">
+            <p className="text-gray-500">
               Enter your Reference ID to check the status of your task submission.
             </p>
           </div>
 
           <form onSubmit={handleCheck} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-[#9CA3AF] mb-2">
+              <label className="block text-sm font-medium text-gray-500 mb-2">
                 Reference ID
               </label>
               <div className="relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#6B7280]" />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   type="text"
                   placeholder="e.g. ROT-823741"
@@ -68,7 +68,7 @@ export default function StatusPage() {
             </button>
           </form>
 
-          <p className="text-xs text-[#6B7280] text-center mt-6">
+          <p className="text-xs text-gray-400 text-center mt-6">
             Don&apos;t have a Reference ID? Complete a task to receive one.
           </p>
         </div>

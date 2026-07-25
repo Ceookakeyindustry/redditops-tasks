@@ -159,7 +159,7 @@ export default function EditTaskPage() {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Link
           href="/admin/dashboard"
-          className="inline-flex items-center gap-2 text-[#9CA3AF] hover:text-white transition-colors mb-6"
+          className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors mb-6"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Dashboard
@@ -167,8 +167,8 @@ export default function EditTaskPage() {
 
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-white">Edit Task</h1>
-            <p className="text-[#9CA3AF] mt-1 font-mono text-sm">{taskId}</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Edit Task</h1>
+            <p className="text-gray-500 mt-1 font-mono text-sm">{taskId}</p>
           </div>
           <div className="flex items-center gap-3">
             {isActive ? (
@@ -186,10 +186,10 @@ export default function EditTaskPage() {
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Basic Fields */}
           <div className="card p-6 space-y-4">
-            <h2 className="text-lg font-semibold text-white mb-4">Basic Information</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Basic Information</h2>
 
             <div>
-              <label className="block text-sm font-medium text-[#9CA3AF] mb-2">
+              <label className="block text-sm font-medium text-gray-500 mb-2">
                 Task Title *
               </label>
               <input
@@ -203,7 +203,7 @@ export default function EditTaskPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-[#9CA3AF] mb-2">
+                <label className="block text-sm font-medium text-gray-500 mb-2">
                   Payment ($) *
                 </label>
                 <input
@@ -217,7 +217,7 @@ export default function EditTaskPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-[#9CA3AF] mb-2">
+                <label className="block text-sm font-medium text-gray-500 mb-2">
                   Max Completions
                 </label>
                 <input
@@ -232,7 +232,7 @@ export default function EditTaskPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-[#9CA3AF] mb-2">
+              <label className="block text-sm font-medium text-gray-500 mb-2">
                 Requirements
               </label>
               <textarea
@@ -244,7 +244,7 @@ export default function EditTaskPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-[#9CA3AF] mb-2">
+              <label className="block text-sm font-medium text-gray-500 mb-2">
                 Instructions
               </label>
               <textarea
@@ -256,10 +256,10 @@ export default function EditTaskPage() {
             </div>
 
             {/* Active Toggle */}
-            <div className="flex items-center justify-between p-4 rounded-xl bg-[#2A2A2A] border border-[#2A2A2A]">
+            <div className="flex items-center justify-between p-4 rounded-xl bg-gray-50 border border-gray-200">
               <div>
-                <p className="text-white font-medium">Task Active</p>
-                <p className="text-[#9CA3AF] text-sm">Toggle whether this task is visible to users</p>
+                <p className="text-gray-900 font-medium">Task Active</p>
+                <p className="text-gray-500 text-sm">Toggle whether this task is visible to users</p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
@@ -268,7 +268,7 @@ export default function EditTaskPage() {
                   onChange={e => setIsActive(e.target.checked)}
                   className="sr-only peer"
                 />
-                <div className="w-11 h-6 bg-[#2A2A2A] rounded-full peer peer-checked:bg-[#8B5CF6] transition-colors peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all" />
+                <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-[#8B5CF6] transition-colors peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all" />
               </label>
             </div>
           </div>
@@ -276,7 +276,7 @@ export default function EditTaskPage() {
           {/* Access Code */}
           <div className="card p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-white">Access Code</h2>
+              <h2 className="text-lg font-semibold text-gray-900">Access Code</h2>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
@@ -315,10 +315,10 @@ export default function EditTaskPage() {
                   />
                   <div className="w-11 h-6 bg-[#2A2A2A] rounded-full peer peer-checked:bg-red-500 transition-colors peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all" />
                 </label>
-                <span className="text-sm text-[#9CA3AF]">Disable access code</span>
+                <span className="text-sm text-gray-500">Disable access code</span>
               </div>
             </div>
-            <p className="text-xs text-[#6B7280] mt-2">
+            <p className="text-xs text-gray-400 mt-2">
               Disabling the code will lock the task until a new code is set.
             </p>
           </div>
@@ -326,10 +326,10 @@ export default function EditTaskPage() {
           {/* Comment-specific Fields */}
           {task.type === 'comment' && (
             <div className="card p-6 space-y-4">
-              <h2 className="text-lg font-semibold text-white">Comment Task Details</h2>
+              <h2 className="text-lg font-semibold text-gray-900">Comment Task Details</h2>
 
               <div>
-                <label className="block text-sm font-medium text-[#9CA3AF] mb-2">
+                <label className="block text-sm font-medium text-gray-500 mb-2">
                   Reddit Post URL
                 </label>
                 <input
@@ -341,7 +341,7 @@ export default function EditTaskPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-[#9CA3AF] mb-2">
+                <label className="block text-sm font-medium text-gray-500 mb-2">
                   Comment Text
                 </label>
                 <textarea
@@ -357,10 +357,10 @@ export default function EditTaskPage() {
           {/* Post-specific Fields */}
           {task.type === 'post' && (
             <div className="card p-6 space-y-4">
-              <h2 className="text-lg font-semibold text-white">Post Task Details</h2>
+              <h2 className="text-lg font-semibold text-gray-900">Post Task Details</h2>
 
               <div>
-                <label className="block text-sm font-medium text-[#9CA3AF] mb-2">
+                <label className="block text-sm font-medium text-gray-500 mb-2">
                   Target Subreddit(s)
                 </label>
                 <input
@@ -372,7 +372,7 @@ export default function EditTaskPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-[#9CA3AF] mb-2">
+                <label className="block text-sm font-medium text-gray-500 mb-2">
                   Suggested Post Title
                 </label>
                 <input
@@ -384,7 +384,7 @@ export default function EditTaskPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-[#9CA3AF] mb-2">
+                <label className="block text-sm font-medium text-gray-500 mb-2">
                   Suggested Body Text
                 </label>
                 <textarea
