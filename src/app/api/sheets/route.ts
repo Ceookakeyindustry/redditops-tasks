@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { verifyAdminRequest } from '@/lib/api-auth';
+
+const ADMIN_ACTIONS = ['ensureSheets', 'addTask', 'updateSubmission'];
 
 export async function POST(request: NextRequest) {
   try {
@@ -7,6 +10,16 @@ export async function POST(request: NextRequest) {
 
     if (!action) {
       return NextResponse.json({ error: 'Action is required' }, { status: 400 });
+    }
+
+    // Admin-only actions require authentication
+    if (ADMIN_ACTIONS.includes(action)) {
+      if (!verifyAdminRequest(request)) {
+        return NextResponse.json(
+          { error: 'Unauthorized. Admin authentication required.' },
+          { status: 403 }
+        );
+      }
     }
 
     // Dynamically import google-sheets to avoid bundling Node.js modules in client code

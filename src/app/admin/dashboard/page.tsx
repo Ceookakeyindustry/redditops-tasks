@@ -154,15 +154,7 @@ export default function AdminDashboardPage() {
       border: 'border-[#8B5CF6]/20',
       isPayout: true,
     },
-    {
-      label: 'Unpaid',
-      value: formatPayment(stats?.unpaidPayout || 0),
-      icon: DollarSign,
-      color: 'text-[#F59E0B]',
-      bg: 'bg-[#F59E0B]/10',
-      border: 'border-[#F59E0B]/20',
-      isPayout: true,
-    },
+
   ];
 
   return (

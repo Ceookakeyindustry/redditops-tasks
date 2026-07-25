@@ -157,22 +157,48 @@ export function getDashboardStats(): DashboardStats {
 }
 
 // --- Admin Auth ---
-export function adminLogin(username: string, password: string): boolean {
-  const adminUser = process.env.NEXT_PUBLIC_ADMIN_USERNAME || 'admin';
-  const adminPass = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || 'RedditOps2024!';
-  if (username === adminUser && password === adminPass) {
-    setToStorage(STORAGE_KEYS.adminAuth, { username, isAuthenticated: true, loginTime: Date.now() });
-    return true;
+let adminTokenCache: string | null = null;
+
+function getAdminToken(): string {
+  if (!adminTokenCache) {
+    const stored = getFromStorage<{ token: string } | null>('rot_admin_token', null);
+    adminTokenCache = stored?.token || '';
   }
-  return false;
+  return adminTokenCache;
+}
+
+export function getAdminTokenForApi(): string {
+  return getAdminToken();
+}
+
+export async function adminLogin(username: string, password: string): Promise<boolean> {
+  try {
+    const res = await fetch('/api/admin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+    const data = await res.json();
+    if (data.success && data.token) {
+      setToStorage(STORAGE_KEYS.adminAuth, { isAuthenticated: true, loginTime: Date.now() });
+      setToStorage('rot_admin_token', { token: data.token });
+      adminTokenCache = data.token;
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
 }
 
 export function adminLogout(): void {
   setToStorage(STORAGE_KEYS.adminAuth, null);
+  setToStorage('rot_admin_token', null);
+  adminTokenCache = null;
 }
 
 export function isAdminAuthenticated(): boolean {
-  const auth = getFromStorage<{ username: string; isAuthenticated: boolean; loginTime: number } | null>(
+  const auth = getFromStorage<{ isAuthenticated: boolean; loginTime: number } | null>(
     STORAGE_KEYS.adminAuth, null
   );
   if (!auth || !auth.isAuthenticated) return false;

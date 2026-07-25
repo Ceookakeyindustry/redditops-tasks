@@ -19,7 +19,7 @@ export default function AdminLoginPage() {
 
     try {
       const { adminLogin } = await import('@/lib/store');
-      const success = adminLogin(username, password);
+      const success = await adminLogin(username, password);
       if (success) {
         router.push('/admin/dashboard');
       } else {

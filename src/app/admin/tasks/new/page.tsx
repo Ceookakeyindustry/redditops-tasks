@@ -129,9 +129,13 @@ export default function NewTaskPage() {
 
       // Try to sync with Google Sheets (non-blocking)
       try {
+        const { getAdminTokenForApi } = await import('@/lib/store');
         await fetch('/api/sheets', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${getAdminTokenForApi()}`,
+          },
           body: JSON.stringify({ action: 'addTask', data: newTask }),
         });
       } catch {
