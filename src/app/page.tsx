@@ -2,8 +2,12 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import TaskCard from '@/components/TaskCard';
+import ThreeDScene from '@/components/ThreeDScene';
+import ParticleBackground from '@/components/ParticleBackground';
+import AnimatedCounter from '@/components/AnimatedCounter';
 import type { Task } from '@/lib/types';
-import { Search, ArrowUpDown, MessageCircle, FileText, Sparkles } from 'lucide-react';
+import { Search, ArrowUpDown, MessageCircle, FileText, Sparkles, TrendingUp, Shield } from 'lucide-react';
+import Link from 'next/link';
 
 export default function HomePage() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -56,23 +60,81 @@ export default function HomePage() {
   return (
     <div className="flex-1">
       {/* Hero Section */}
-      <section className="relative overflow-hidden border-b border-[#2A2A2A]">
-        <div className="absolute inset-0 bg-gradient-to-b from-[#8B5CF6]/5 to-transparent pointer-events-none" />
-        <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-[#8B5CF6]/5 rounded-full blur-3xl pointer-events-none" />
+      <section className="relative overflow-hidden border-b border-[#2A2A2A] min-h-[70vh] flex items-center">
+        <ParticleBackground count={30} />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#8B5CF6]/8 via-transparent to-transparent pointer-events-none" />
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-[#8B5CF6]/5 rounded-full blur-3xl pointer-events-none animate-pulse-soft" />
+        <div className="absolute bottom-0 left-1/4 w-[400px] h-[400px] bg-emerald-500/3 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
-          <div className="text-center max-w-2xl mx-auto">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#8B5CF6]/10 border border-[#8B5CF6]/20 text-[#8B5CF6] text-sm font-medium mb-6 animate-fade-in">
-              <Sparkles className="w-4 h-4" />
-              Complete Reddit Tasks & Earn
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 w-full">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            {/* Text Content */}
+            <div className="text-center lg:text-left">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#8B5CF6]/10 border border-[#8B5CF6]/20 text-[#8B5CF6] text-sm font-medium mb-6 animate-fade-in">
+                <Sparkles className="w-4 h-4" />
+                Complete Reddit Tasks & Earn
+              </div>
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 animate-slide-up">
+                Browse{' '}
+                <span className="gradient-text">Available Tasks</span>
+              </h1>
+              <p className="text-lg text-[#9CA3AF] mb-8 animate-fade-in max-w-lg">
+                Find Reddit marketing tasks, complete them, and get paid. No account needed — just submit your proof.
+              </p>
+              <div className="flex flex-wrap items-center gap-4 justify-center lg:justify-start animate-slide-up">
+                <Link href="#tasks" className="btn-primary">
+                  <TrendingUp className="w-4 h-4" />
+                  Browse Tasks
+                </Link>
+                <Link href="/status" className="btn-secondary">
+                  <Shield className="w-4 h-4" />
+                  Check Status
+                </Link>
+              </div>
+              {/* Stats bar */}
+              <div className="flex items-center gap-8 mt-10 justify-center lg:justify-start">
+                <div className="text-center">
+                  <p className="text-2xl font-bold gradient-text">
+                    <AnimatedCounter value={filteredTasks.length} duration={1500} suffix="+" />
+                  </p>
+                  <p className="text-xs text-[#6B7280]">Live Tasks</p>
+                </div>
+                <div className="w-px h-10 bg-[#2A2A2A]" />
+                <div className="text-center">
+                  <p className="text-2xl font-bold gradient-text-green">
+                    $<AnimatedCounter value={tasks.reduce((sum, t) => sum + t.payment, 0)} duration={1800} suffix="+" />
+                  </p>
+                  <p className="text-xs text-[#6B7280]">Total Value</p>
+                </div>
+                <div className="w-px h-10 bg-[#2A2A2A]" />
+                <div className="text-center">
+                  <p className="text-2xl font-bold gradient-text-gold">Instant</p>
+                  <p className="text-xs text-[#6B7280]">Payout</p>
+                </div>
+              </div>
             </div>
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 animate-slide-up">
-              Browse{' '}
-              <span className="gradient-text">Available Tasks</span>
-            </h1>
-            <p className="text-lg text-[#9CA3AF] mb-8 animate-fade-in">
-              Find Reddit marketing tasks, complete them, and get paid. No account needed — just submit your proof.
-            </p>
+
+            {/* 3D Scene */}
+            <div className="hidden lg:flex items-center justify-center animate-fade-in">
+              <div className="relative">
+                {/* Glow rings */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-[300px] h-[300px] rounded-full border border-[#8B5CF6]/10 animate-pulse-glow" />
+                </div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-[200px] h-[200px] rounded-full border border-[#8B5CF6]/5 animate-float-slow" />
+                </div>
+                {/* Orbiting particles */}
+                <div className="orbit-container">
+                  <div className="orbit-item" />
+                  <div className="orbit-item" />
+                  <div className="orbit-item" />
+                  <div className="orbit-item" />
+                </div>
+                {/* 3D Cube */}
+                <ThreeDScene />
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -142,7 +204,7 @@ export default function HomePage() {
       </section>
 
       {/* Tasks Grid */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+      <section id="tasks" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3, 4, 5, 6].map(i => (

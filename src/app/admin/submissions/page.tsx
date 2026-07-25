@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import type { Submission, Task } from '@/lib/types';
 import { formatDate, PRESET_REJECTION_REASONS } from '@/lib/types';
+import ConfettiEffect from '@/components/ConfettiEffect';
 
 export default function AdminSubmissionsPage() {
   const router = useRouter();
@@ -23,6 +24,9 @@ export default function AdminSubmissionsPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+
+  // Confetti trigger counter to ensure re-trigger on every approve
+  const [confettiTrigger, setConfettiTrigger] = useState(0);
 
   // Rejection modal
   const [rejectingSubmission, setRejectingSubmission] = useState<string | null>(null);
@@ -74,6 +78,9 @@ export default function AdminSubmissionsPage() {
           s.refId === submission.refId ? { ...s, status: 'approved' as const } : s
         )
       );
+
+      // Trigger confetti! Counter ensures it re-fires every time
+      setConfettiTrigger(t => t + 1);
     } finally {
       setProcessingAction(null);
     }
@@ -341,6 +348,9 @@ export default function AdminSubmissionsPage() {
           </div>
         )}
       </div>
+
+      {/* Light-themed confetti on approval */}
+      <ConfettiEffect trigger={confettiTrigger} duration={3000} />
 
       {/* Rejection Modal */}
       {rejectingSubmission && (

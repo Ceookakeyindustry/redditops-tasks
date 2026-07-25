@@ -61,13 +61,19 @@ export default function AdminTasksPage() {
     }
   };
 
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
   const handleDelete = async (taskId: string) => {
-    const confirmed = window.confirm('Delete this task? Users will lose access. This cannot be undone.');
-    if (!confirmed) return;
-    setDeletingId(taskId);
+    setDeleteConfirmId(taskId);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirmId) return;
+    setDeletingId(deleteConfirmId);
+    setDeleteConfirmId(null);
     const { deleteTask } = await import('@/lib/store');
-    deleteTask(taskId);
-    setTasks(prev => prev.filter(t => t.taskId !== taskId));
+    deleteTask(deleteConfirmId);
+    setTasks(prev => prev.filter(t => t.taskId !== deleteConfirmId));
     setDeletingId(null);
   };
 
@@ -288,6 +294,42 @@ export default function AdminTasksPage() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="card p-6 sm:p-8 w-full max-w-md animate-scale-in text-center" onClick={e => e.stopPropagation()}>
+            <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto mb-4">
+              <Trash2 className="w-8 h-8 text-red-400" />
+            </div>
+            <h2 className="text-xl font-bold text-white mb-2">Delete Task?</h2>
+            <p className="text-[#9CA3AF] text-sm mb-2">
+              You are about to permanently delete this task.
+            </p>
+            <p className="font-mono text-[#8B5CF6] text-sm mb-6">
+              {deleteConfirmId}
+            </p>
+            <p className="text-red-400 text-xs mb-6 bg-red-500/5 p-3 rounded-xl border border-red-500/10">
+              Users will lose access. Submissions for this task will remain.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteConfirmId(null)}
+                className="btn-secondary flex-1"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="btn-danger flex-1"
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete Permanently
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

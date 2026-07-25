@@ -15,25 +15,36 @@ import {
   LogOut,
   TrendingUp,
   Activity,
+  Trash2,
+  ExternalLink,
+  MessageCircle,
 } from 'lucide-react';
-import type { DashboardStats } from '@/lib/types';
-import { formatPayment } from '@/lib/types';
+import type { DashboardStats, Task } from '@/lib/types';
+import { formatPayment, formatDate } from '@/lib/types';
+import AnimatedCounter from '@/components/AnimatedCounter';
 
 export default function AdminDashboardPage() {
   const router = useRouter();
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [recentTasks, setRecentTasks] = useState<Task[]>([]);
+  const [allTasks, setAllTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [authenticated, setAuthenticated] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
-      const { isAdminAuthenticated, getDashboardStats } = await import('@/lib/store');
+      const { isAdminAuthenticated, getDashboardStats, getTasks } = await import('@/lib/store');
       if (!isAdminAuthenticated()) {
         router.push('/admin/login');
         return;
       }
       setAuthenticated(true);
       setStats(getDashboardStats());
+      const tasks = getTasks();
+      setAllTasks(tasks);
+      // Show 5 most recent tasks
+      setRecentTasks(tasks.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 5));
       setLoading(false);
     })();
   }, [router]);
@@ -42,6 +53,17 @@ export default function AdminDashboardPage() {
     const { adminLogout } = await import('@/lib/store');
     adminLogout();
     router.push('/admin/login');
+  };
+
+  const handleDelete = async (taskId: string) => {
+    if (!window.confirm('Permanently delete this task? This cannot be undone.')) return;
+    setDeletingId(taskId);
+    const { deleteTask } = await import('@/lib/store');
+    deleteTask(taskId);
+    setRecentTasks(prev => prev.filter(t => t.taskId !== taskId));
+    const { getDashboardStats } = await import('@/lib/store');
+    setStats(getDashboardStats());
+    setDeletingId(null);
   };
 
   if (loading) {
@@ -53,6 +75,8 @@ export default function AdminDashboardPage() {
   }
 
   if (!authenticated) return null;
+
+  const totalTaskValue = allTasks.reduce((sum, t) => sum + t.payment, 0);
 
   const cards = [
     {
@@ -70,6 +94,15 @@ export default function AdminDashboardPage() {
       color: 'text-emerald-400',
       bg: 'bg-emerald-500/10',
       border: 'border-emerald-500/20',
+    },
+    {
+      label: 'Total Task Value',
+      value: formatPayment(totalTaskValue),
+      icon: DollarSign,
+      color: 'text-purple-400',
+      bg: 'bg-purple-500/10',
+      border: 'border-purple-500/20',
+      isCurrency: true,
     },
     {
       label: 'Total Submissions',
@@ -116,9 +149,9 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="flex-1">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-3">
               <LayoutDashboard className="w-8 h-8 text-[#8B5CF6]" />
@@ -139,12 +172,12 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {cards.map((card, idx) => (
             <div
               key={card.label}
-              className="card p-5 animate-fade-in"
-              style={{ animationDelay: `${idx * 100}ms` }}
+              className="card p-5 animate-scale-in"
+              style={{ animationDelay: `${idx * 80}ms` }}
             >
               <div className="flex items-center gap-3 mb-3">
                 <div className={`w-10 h-10 rounded-xl ${card.bg} border ${card.border} flex items-center justify-center`}>
@@ -152,7 +185,13 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
               <p className="text-2xl font-bold text-white mb-1">
-                {card.isPayout ? card.value : card.value}
+                {card.isPayout ? (
+                  card.value
+                ) : card.isCurrency ? (
+                  card.value
+                ) : (
+                  <AnimatedCounter value={Number(card.value)} duration={1200 + idx * 100} />
+                )}
               </p>
               <p className="text-xs text-[#6B7280]">{card.label}</p>
             </div>
@@ -160,7 +199,7 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Link
             href="/admin/tasks"
             className="card p-6 hover:border-[#8B5CF6]/30 transition-all duration-200 group"
@@ -207,6 +246,98 @@ export default function AdminDashboardPage() {
               </div>
             </div>
           </Link>
+        </div>
+
+        {/* Recent Tasks Section */}
+        <div className="card p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <FileText className="w-5 h-5 text-[#8B5CF6]" />
+                Recent Tasks
+              </h2>
+              <p className="text-[#9CA3AF] text-sm mt-1">Quick overview of your latest tasks</p>
+            </div>
+            <Link href="/admin/tasks" className="btn-secondary text-sm px-4 py-2">
+              View All
+            </Link>
+          </div>
+
+          {recentTasks.length === 0 ? (
+            <div className="text-center py-10">
+              <p className="text-[#9CA3AF]">No tasks created yet.</p>
+              <Link href="/admin/tasks/new" className="text-[#8B5CF6] hover:text-[#A78BFA] text-sm font-medium mt-2 inline-block">
+                Create your first task →
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {recentTasks.map((task, idx) => (
+                <div
+                  key={task.id}
+                  className="flex items-center gap-4 p-4 rounded-xl bg-[#2A2A2A] border border-[#2A2A2A] hover:border-[#8B5CF6]/20 transition-all animate-fade-in group"
+                  style={{ animationDelay: `${idx * 80}ms` }}
+                >
+                  {/* Icon */}
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                    task.type === 'comment'
+                      ? 'bg-blue-500/10 text-blue-400'
+                      : 'bg-emerald-500/10 text-emerald-400'
+                  }`}>
+                    {task.type === 'comment' ? (
+                      <MessageCircle className="w-5 h-5" />
+                    ) : (
+                      <FileText className="w-5 h-5" />
+                    )}
+                  </div>
+
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="font-mono text-xs text-[#8B5CF6] font-medium">{task.taskId}</span>
+                      <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
+                        task.isActive ? 'text-emerald-400 bg-emerald-500/10' : 'text-red-400 bg-red-500/10'
+                      }`}>
+                        {task.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
+                    <p className="text-white text-sm font-medium truncate">{task.title}</p>
+                    <p className="text-xs text-[#6B7280] mt-0.5">{formatDate(task.createdAt)}</p>
+                  </div>
+
+                  {/* Pricing */}
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-sm font-bold text-emerald-400">{formatPayment(task.payment)}</p>
+                    {task.maxCompletions && (
+                      <p className="text-xs text-[#6B7280]">{task.completedCount || 0}/{task.maxCompletions}</p>
+                    )}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href={`/admin/tasks/${task.taskId}/edit`}
+                      className="px-3 py-2 rounded-lg bg-[#181818] text-[#9CA3AF] border border-[#2A2A2A] hover:border-[#8B5CF6]/30 hover:text-white text-xs font-medium transition-all"
+                    >
+                      Edit
+                    </Link>
+                    <button
+                      onClick={() => handleDelete(task.taskId)}
+                      disabled={deletingId === task.taskId}
+                      className="px-3 py-2 rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 text-xs font-medium transition-all inline-flex items-center gap-1.5"
+                    >
+                      {deletingId === task.taskId ? (
+                        <div className="w-3 h-3 rounded-full border-2 border-red-400/30 border-t-red-400 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-3.5 h-3.5" />
+                      )}
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
