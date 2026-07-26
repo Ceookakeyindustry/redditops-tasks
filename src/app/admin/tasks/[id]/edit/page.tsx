@@ -57,7 +57,7 @@ export default function EditTaskPage() {
       }
       setAuthenticated(true);
 
-      const found = getTask(taskId);
+      const found = await getTask(taskId);
       if (!found) {
         router.push('/admin/dashboard');
         return;
@@ -124,7 +124,7 @@ export default function EditTaskPage() {
         suggestedBody: task?.type === 'post' ? (suggestedBody.trim() || undefined) : undefined,
       };
 
-      updateTask(taskId, updateData);
+      await updateTask(taskId, updateData);
       setSuccess('Task updated successfully!');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to update task.');
@@ -139,7 +139,7 @@ export default function EditTaskPage() {
 
     (async () => {
       const { deleteTask } = await import('@/lib/store');
-      deleteTask(taskId);
+      await deleteTask(taskId);
       router.push('/admin/dashboard');
     })();
   };

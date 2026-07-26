@@ -37,7 +37,8 @@ export default function AdminTasksPage() {
         return;
       }
       setAuthenticated(true);
-      setTasks(getTasks());
+      const allTasks = await getTasks();
+      setTasks(allTasks);
       setLoading(false);
     })();
   }, [router]);
@@ -72,7 +73,7 @@ export default function AdminTasksPage() {
     setDeletingId(deleteConfirmId);
     setDeleteConfirmId(null);
     const { deleteTask } = await import('@/lib/store');
-    deleteTask(deleteConfirmId);
+    await deleteTask(deleteConfirmId);
     setTasks(prev => prev.filter(t => t.taskId !== deleteConfirmId));
     setDeletingId(null);
   };
@@ -81,7 +82,7 @@ export default function AdminTasksPage() {
     const { updateTask } = await import('@/lib/store');
     const task = tasks.find(t => t.taskId === taskId);
     if (!task) return;
-    updateTask(taskId, { isActive: !task.isActive });
+    await updateTask(taskId, { isActive: !task.isActive });
     setTasks(prev =>
       prev.map(t => (t.taskId === taskId ? { ...t, isActive: !t.isActive } : t))
     );
@@ -192,16 +193,18 @@ export default function AdminTasksPage() {
                           <FileText className="w-3 h-3" />
                         )}
                         {task.type}
-                      </span>
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                          task.isActive
-                            ? 'badge-approved'
-                            : 'badge-rejected'
-                        }`}
-                      >
-                        {task.isActive ? 'Active' : 'Inactive'}
-                      </span>
+                      </span>                          <span
+                            className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                              task.status === 'available' ? 'badge-available' :
+                              task.status === 'assigned' ? 'badge-assigned' :
+                              task.status === 'submitted' ? 'badge-submitted' :
+                              task.status === 'approved' ? 'badge-approved' :
+                              task.status === 'expired' ? 'badge-expired' :
+                              task.isActive ? 'badge-approved' : 'badge-rejected'
+                            }`}
+                          >
+                            {task.status ? task.status.charAt(0).toUpperCase() + task.status.slice(1) : (task.isActive ? 'Active' : 'Inactive')}
+                          </span>
                     </div>
 
                     <h3 className="text-gray-900 font-medium truncate">{task.title}</h3>
@@ -215,6 +218,12 @@ export default function AdminTasksPage() {
                         <Clock className="w-3 h-3" />
                         {formatDate(task.createdAt)}
                       </span>
+                      {task.assignedDiscordUsername && (
+                        <span className="flex items-center gap-1">
+                          <span className="text-[#5865F2]">Discord:</span>
+                          <span className="text-gray-900">{task.assignedDiscordUsername}</span>
+                        </span>
+                      )}
                       <span>
                         Code: <span className="font-mono text-gray-900">{task.accessCode}</span>
                       </span>

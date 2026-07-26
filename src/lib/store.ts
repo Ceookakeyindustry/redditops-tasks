@@ -1,170 +1,357 @@
-'use client';
+// Store that communicates with Supabase via the /api/data route
+// All functions are async and work both client and server side
 
-import type { Task, Submission, DashboardStats, AccessLog } from './types';
-import { generateTaskId, generateRefId } from './types';
+import type { Task, Submission, DashboardStats, ActionLog, AccessLog } from './types';
+import { generateTaskId, generateRefId, generateAccessCode } from './types';
 
-// In-memory store with localStorage persistence for demo/dev purposes.
-// Will be replaced with Supabase when configured.
+const API_BASE = '/api/data';
 
-const STORAGE_KEYS = {
-  tasks: 'rot_tasks',
-  submissions: 'rot_submissions',
-  taskCounter: 'rot_task_counter',
-  adminAuth: 'rot_admin_auth',
-};
-
-function getFromStorage<T>(key: string, defaultValue: T): T {
-  if (typeof window === 'undefined') return defaultValue;
-  try {
-    const item = localStorage.getItem(key);
-    return item ? JSON.parse(item) : defaultValue;
-  } catch {
-    return defaultValue;
+async function apiGet(params: Record<string, string>): Promise<any> {
+  const qs = new URLSearchParams(params).toString();
+  const res = await fetch(`${API_BASE}?${qs}`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Request failed' }));
+    throw new Error(err.error || `HTTP ${res.status}`);
   }
+  return res.json();
 }
 
-function setToStorage<T>(key: string, value: T): void {
-  if (typeof window === 'undefined') return;
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    // Storage full or unavailable
+async function apiPost(body: Record<string, any>): Promise<any> {
+  const res = await fetch(API_BASE, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Request failed' }));
+    throw new Error(err.error || `HTTP ${res.status}`);
   }
+  return res.json();
 }
 
-// --- Tasks ---
-export function getTasks(): Task[] {
-  return getFromStorage<Task[]>(STORAGE_KEYS.tasks, []);
+// ==================== TASKS ====================
+
+export async function getTasks(): Promise<Task[]> {
+  const { tasks } = await apiGet({ type: 'tasks' });
+  return tasks || [];
 }
 
-export function getTask(taskId: string): Task | undefined {
-  return getTasks().find(t => t.taskId === taskId);
+export async function getTask(taskId: string): Promise<Task | undefined> {
+  const { task } = await apiGet({ type: 'task', taskId });
+  return task || undefined;
 }
 
-export function getTaskByAccess(taskId: string, accessCode: string): Task | undefined {
-  return getTasks().find(
-    t => t.taskId === taskId && t.accessCode === accessCode && !t.accessCodeDisabled
-  );
+export async function getTaskByAccess(taskId: string, accessCode: string): Promise<Task | undefined> {
+  const { task } = await apiGet({ type: 'task', taskId, accessCode });
+  return task || undefined;
 }
 
-export function createTask(data: Omit<Task, 'id' | 'taskId' | 'createdAt' | 'completedCount' | 'accessLogs'>): Task {
-  const tasks = getTasks();
-  const counter = getFromStorage<number>(STORAGE_KEYS.taskCounter, tasks.length + 1);
-  const newTask: Task = {
+export async function getAvailableTasks(): Promise<Task[]> {
+  const { tasks } = await apiGet({ type: 'tasks', active: 'true', status: 'available' });
+  return tasks || [];
+}
+
+export async function createTask(data: Omit<Task, 'id' | 'taskId' | 'createdAt' | 'completedCount' | 'accessLogs' | 'status'>): Promise<Task> {
+  const { tasks } = await apiGet({ type: 'tasks' });
+  const counter = (tasks?.length || 0) + 1;
+  const newTask = {
     ...data,
-    id: crypto.randomUUID(),
     taskId: generateTaskId(counter),
     createdAt: new Date().toISOString(),
     completedCount: 0,
     accessLogs: [],
     accessCodeDisabled: data.accessCodeDisabled ?? false,
+    status: 'available',
   };
-  tasks.push(newTask);
-  setToStorage(STORAGE_KEYS.tasks, tasks);
-  setToStorage(STORAGE_KEYS.taskCounter, counter + 1);
-  return newTask;
+  const { task } = await apiPost({ action: 'createTask', data: newTask });
+  return task;
 }
 
-export function updateTask(taskId: string, data: Partial<Task>): Task | undefined {
-  const tasks = getTasks();
-  const index = tasks.findIndex(t => t.taskId === taskId);
-  if (index === -1) return undefined;
-  tasks[index] = { ...tasks[index], ...data };
-  setToStorage(STORAGE_KEYS.tasks, tasks);
-  return tasks[index];
+export async function updateTask(taskId: string, data: Partial<Task>): Promise<Task | undefined> {
+  const { task } = await apiPost({ action: 'updateTask', taskId, data });
+  return task;
 }
 
-export function deleteTask(taskId: string): boolean {
-  const tasks = getTasks();
-  const filtered = tasks.filter(t => t.taskId !== taskId);
-  if (filtered.length === tasks.length) return false;
-  setToStorage(STORAGE_KEYS.tasks, filtered);
+export async function deleteTask(taskId: string): Promise<boolean> {
+  await apiPost({ action: 'deleteTask', taskId });
   return true;
 }
 
-export function logAccess(taskId: string, ipAddress: string, success: boolean): void {
-  const tasks = getTasks();
-  const index = tasks.findIndex(t => t.taskId === taskId);
-  if (index === -1) return;
-  const log: AccessLog = {
-    timestamp: new Date().toISOString(),
-    ipAddress,
-    success,
-  };
-  tasks[index].accessLogs = [...(tasks[index].accessLogs || []), log];
-  setToStorage(STORAGE_KEYS.tasks, tasks);
+export async function logAccess(taskId: string, ipAddress: string, success: boolean): Promise<void> {
+  await apiPost({ action: 'logAccess', taskId, ipAddress, success });
 }
 
-// --- Submissions ---
-export function getSubmissions(): Submission[] {
-  return getFromStorage<Submission[]>(STORAGE_KEYS.submissions, []);
+// ==================== DISCORD ASSIGNMENT ====================
+
+export async function assignTask(taskId: string, discordUserId: string, discordUsername: string): Promise<Task | undefined> {
+  const task = await getTask(taskId);
+  if (!task || task.status !== 'available') return undefined;
+
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + 12 * 60 * 60 * 1000);
+
+  const updated = await updateTask(taskId, {
+    accessCode: generateAccessCode(),
+    accessCodeDisabled: false,
+    status: 'assigned',
+    discordUserId,
+    assignedDiscordUsername: discordUsername,
+    assignedAt: now.toISOString(),
+    expiresAt: expiresAt.toISOString(),
+  });
+
+  if (updated) {
+    await addActionLog({
+      taskId,
+      action: 'assigned',
+      performedBy: discordUsername,
+      details: { discordUserId, discordUsername, expiresAt: expiresAt.toISOString() },
+    });
+  }
+
+  return updated;
 }
 
-export function getSubmission(refId: string): Submission | undefined {
-  return getSubmissions().find(s => s.refId === refId);
+export async function unassignTask(taskId: string, adminUsername?: string): Promise<Task | undefined> {
+  const task = await getTask(taskId);
+  if (!task || task.status !== 'assigned') return undefined;
+
+  const updated = await updateTask(taskId, {
+    accessCode: generateAccessCode(),
+    accessCodeDisabled: false,
+    status: 'available',
+    discordUserId: undefined,
+    assignedDiscordUsername: undefined,
+    assignedAt: undefined,
+    expiresAt: undefined,
+  });
+
+  if (updated) {
+    await addActionLog({
+      taskId,
+      action: 'unassigned',
+      performedBy: adminUsername || 'system',
+      details: { previousDiscordUserId: task.discordUserId },
+    });
+  }
+
+  return updated;
 }
 
-export function getTaskSubmissions(taskId: string): Submission[] {
-  return getSubmissions().filter(s => s.taskId === taskId);
+export async function expireTask(taskId: string): Promise<Task | undefined> {
+  const task = await getTask(taskId);
+  if (!task || task.status !== 'assigned') return undefined;
+
+  const previousUser = task.assignedDiscordUsername;
+
+  const updated = await updateTask(taskId, {
+    accessCode: generateAccessCode(),
+    accessCodeDisabled: false,
+    status: 'available',
+    discordUserId: undefined,
+    assignedDiscordUsername: undefined,
+    assignedAt: undefined,
+    expiresAt: undefined,
+  });
+
+  if (updated) {
+    await addActionLog({
+      taskId,
+      action: 'expired',
+      performedBy: 'system',
+      details: { previouslyAssignedTo: previousUser },
+    });
+  }
+
+  return updated;
 }
 
-export function createSubmission(data: Omit<Submission, 'refId' | 'submittedAt' | 'status' | 'isPaid'>): Submission {
-  const submissions = getSubmissions();
-  const submission: Submission = {
+export async function regenAccessCode(taskId: string, adminUsername?: string): Promise<Task | undefined> {
+  const task = await getTask(taskId);
+  if (!task) return undefined;
+
+  const oldCode = task.accessCode;
+  const updated = await updateTask(taskId, {
+    accessCode: generateAccessCode(),
+    accessCodeDisabled: false,
+  });
+
+  if (updated) {
+    await addActionLog({
+      taskId,
+      action: 'access_code_regenerated',
+      performedBy: adminUsername || 'system',
+      details: { oldCode },
+    });
+  }
+
+  return updated;
+}
+
+export async function markTaskSubmitted(taskId: string): Promise<Task | undefined> {
+  const task = await getTask(taskId);
+  if (!task || task.status !== 'assigned') return undefined;
+
+  const updated = await updateTask(taskId, {
+    status: 'submitted',
+    completedCount: (task.completedCount || 0) + 1,
+  });
+
+  if (updated) {
+    await addActionLog({
+      taskId,
+      action: 'submitted',
+      performedBy: task.assignedDiscordUsername || 'unknown',
+      details: {},
+    });
+  }
+
+  return updated;
+}
+
+export async function approveTaskSubmission(taskId: string, adminUsername?: string): Promise<Task | undefined> {
+  const updated = await updateTask(taskId, { status: 'approved' });
+  if (updated) {
+    await addActionLog({
+      taskId,
+      action: 'approved',
+      performedBy: adminUsername || 'system',
+      details: { assignedDiscordUsername: updated.assignedDiscordUsername },
+    });
+  }
+  return updated;
+}
+
+export async function rejectTaskSubmission(taskId: string, adminUsername?: string): Promise<Task | undefined> {
+  // Save the previous assignee BEFORE updating (updateTask clears it)
+  const currentTask = await getTask(taskId);
+  const previousUser = currentTask?.assignedDiscordUsername;
+
+  const updated = await updateTask(taskId, {
+    accessCode: generateAccessCode(),
+    accessCodeDisabled: false,
+    status: 'available',
+    discordUserId: undefined,
+    assignedDiscordUsername: undefined,
+    assignedAt: undefined,
+    expiresAt: undefined,
+  });
+
+  if (updated) {
+    await addActionLog({
+      taskId,
+      action: 'rejected',
+      performedBy: adminUsername || 'system',
+      details: { previouslyAssignedTo: previousUser },
+    });
+  }
+
+  return updated;
+}
+
+// ==================== ACTION LOGS ====================
+
+export async function getActionLogs(): Promise<ActionLog[]> {
+  const { actionLogs } = await apiGet({ type: 'actionLogs' });
+  return actionLogs || [];
+}
+
+export async function getTaskActionLogs(taskId: string): Promise<ActionLog[]> {
+  const { actionLogs } = await apiGet({ type: 'actionLogs', taskId });
+  return actionLogs || [];
+}
+
+export async function addActionLog(data: Omit<ActionLog, 'id' | 'createdAt'>): Promise<ActionLog> {
+  const { actionLog } = await apiPost({
+    action: 'addActionLog',
+    taskId: data.taskId,
+    logAction: data.action,
+    performedBy: data.performedBy,
+    details: data.details,
+  });
+  return actionLog;
+}
+
+// ==================== EXPIRY CHECK ====================
+
+export async function checkAndExpireTasks(): Promise<Task[]> {
+  const { expired } = await apiPost({ action: 'checkExpire' });
+  if (expired > 0) {
+    const { tasks } = await apiGet({ type: 'tasks' });
+    return tasks?.filter((t: Task) => t.status === 'available') || [];
+  }
+  return [];
+}
+
+// ==================== SUBMISSIONS ====================
+
+export async function getSubmissions(): Promise<Submission[]> {
+  const { submissions } = await apiGet({ type: 'submissions' });
+  return submissions || [];
+}
+
+export async function getSubmission(refId: string): Promise<Submission | undefined> {
+  const { submission } = await apiGet({ type: 'submission', refId });
+  return submission || undefined;
+}
+
+export async function getTaskSubmissions(taskId: string): Promise<Submission[]> {
+  const { submissions } = await apiGet({ type: 'submissions', taskId });
+  return submissions || [];
+}
+
+export async function createSubmission(data: Omit<Submission, 'refId' | 'submittedAt' | 'status' | 'isPaid'>): Promise<Submission> {
+  const submissionData = {
     ...data,
     refId: generateRefId(),
     status: 'pending',
     isPaid: false,
     submittedAt: new Date().toISOString(),
   };
-  submissions.push(submission);
-  setToStorage(STORAGE_KEYS.submissions, submissions);
-  // Update task completion count
-  const tasks = getTasks();
-  const taskIndex = tasks.findIndex(t => t.taskId === data.taskId);
-  if (taskIndex !== -1) {
-    tasks[taskIndex].completedCount = (tasks[taskIndex].completedCount || 0) + 1;
-    setToStorage(STORAGE_KEYS.tasks, tasks);
-  }
+  const { submission } = await apiPost({ action: 'createSubmission', data: submissionData });
   return submission;
 }
 
-export function updateSubmission(refId: string, data: Partial<Submission>): Submission | undefined {
-  const submissions = getSubmissions();
-  const index = submissions.findIndex(s => s.refId === refId);
-  if (index === -1) return undefined;
-  submissions[index] = { ...submissions[index], ...data };
-  setToStorage(STORAGE_KEYS.submissions, submissions);
-  return submissions[index];
+export async function updateSubmission(refId: string, data: Partial<Submission>): Promise<Submission | undefined> {
+  const { submission } = await apiPost({ action: 'updateSubmission', refId, data });
+  return submission;
 }
 
-// --- Dashboard Stats ---
-export function getDashboardStats(): DashboardStats {
-  const tasks = getTasks();
-  const submissions = getSubmissions();
-  const approved = submissions.filter(s => s.status === 'approved');
-  return {
-    totalTasks: tasks.length,
-    activeTasks: tasks.filter(t => t.isActive).length,
-    totalSubmissions: submissions.length,
-    pendingSubmissions: submissions.filter(s => s.status === 'pending').length,
-    approvedSubmissions: approved.length,
-    rejectedSubmissions: submissions.filter(s => s.status === 'rejected').length,
-    totalPayout: approved.reduce((sum, s) => sum + s.payment, 0),
-    paidPayout: approved.filter(s => s.isPaid).reduce((sum, s) => sum + s.payment, 0),
-    unpaidPayout: approved.filter(s => !s.isPaid).reduce((sum, s) => sum + s.payment, 0),
+// ==================== DASHBOARD STATS ====================
+
+export async function getDashboardStats(): Promise<DashboardStats> {
+  const { stats } = await apiGet({ type: 'dashboard' });
+  return stats || {
+    totalTasks: 0,
+    activeTasks: 0,
+    totalSubmissions: 0,
+    pendingSubmissions: 0,
+    approvedSubmissions: 0,
+    rejectedSubmissions: 0,
+    totalPayout: 0,
+    paidPayout: 0,
+    unpaidPayout: 0,
   };
 }
 
-// --- Admin Auth ---
+// ==================== PAYMENT METHODS ====================
+
+export async function getUserPaymentMethod(discordUserId: string): Promise<any> {
+  const { payment } = await apiGet({ type: 'payment', userId: discordUserId });
+  return payment;
+}
+
+export async function setUserPaymentMethod(discordUserId: string, methodType: string, methodDetails: string): Promise<any> {
+  const { payment } = await apiPost({ action: 'setPayment', discordUserId, methodType, methodDetails });
+  return payment;
+}
+
+// ==================== ADMIN AUTH ====================
+
 let adminTokenCache: string | null = null;
 
 function getAdminToken(): string {
-  if (!adminTokenCache) {
-    const stored = getFromStorage<{ token: string } | null>('rot_admin_token', null);
-    adminTokenCache = stored?.token || '';
-  }
-  return adminTokenCache;
+  return adminTokenCache || '';
 }
 
 export function getAdminTokenForApi(): string {
@@ -180,8 +367,12 @@ export async function adminLogin(username: string, password: string): Promise<bo
     });
     const data = await res.json();
     if (data.success && data.token) {
-      setToStorage(STORAGE_KEYS.adminAuth, { isAuthenticated: true, loginTime: Date.now() });
-      setToStorage('rot_admin_token', { token: data.token });
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('rot_admin_auth', JSON.stringify({ isAuthenticated: true, loginTime: Date.now() }));
+          localStorage.setItem('rot_admin_token', JSON.stringify({ token: data.token }));
+        } catch {}
+      }
       adminTokenCache = data.token;
       return true;
     }
@@ -192,20 +383,26 @@ export async function adminLogin(username: string, password: string): Promise<bo
 }
 
 export function adminLogout(): void {
-  setToStorage(STORAGE_KEYS.adminAuth, null);
-  setToStorage('rot_admin_token', null);
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.removeItem('rot_admin_auth');
+      localStorage.removeItem('rot_admin_token');
+    } catch {}
+  }
   adminTokenCache = null;
 }
 
 export function isAdminAuthenticated(): boolean {
-  const auth = getFromStorage<{ isAuthenticated: boolean; loginTime: number } | null>(
-    STORAGE_KEYS.adminAuth, null
-  );
-  if (!auth || !auth.isAuthenticated) return false;
-  // Session expires after 24 hours
-  if (Date.now() - auth.loginTime > 24 * 60 * 60 * 1000) {
-    setToStorage(STORAGE_KEYS.adminAuth, null);
+  if (typeof window === 'undefined') return false;
+  try {
+    const auth = JSON.parse(localStorage.getItem('rot_admin_auth') || 'null');
+    if (!auth || !auth.isAuthenticated) return false;
+    if (Date.now() - auth.loginTime > 24 * 60 * 60 * 1000) {
+      localStorage.removeItem('rot_admin_auth');
+      return false;
+    }
+    return true;
+  } catch {
     return false;
   }
-  return true;
 }

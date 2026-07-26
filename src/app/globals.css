@@ -509,7 +509,38 @@ body {
   color: #9CA3AF;
 }
 
-/* Status badges */
+/* Discord branding */
+.badge-discord {
+  background: rgba(88, 101, 242, 0.1);
+  color: #5865F2;
+  border: 1px solid rgba(88, 101, 242, 0.25);
+}
+
+/* Task status badges */
+.badge-available {
+  background: rgba(16, 185, 129, 0.1);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.badge-assigned {
+  background: rgba(59, 130, 246, 0.1);
+  color: #2563EB;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+.badge-submitted {
+  background: rgba(245, 158, 11, 0.1);
+  color: #D97706;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.badge-expired {
+  background: rgba(239, 68, 68, 0.1);
+  color: #DC2626;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
 .badge-pending {
   background: rgba(245, 158, 11, 0.1);
   color: #D97706;

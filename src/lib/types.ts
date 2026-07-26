@@ -1,5 +1,7 @@
 export type TaskType = 'comment' | 'post';
 
+export type TaskStatus = 'available' | 'assigned' | 'submitted' | 'approved' | 'expired';
+
 export type SubmissionStatus = 'pending' | 'approved' | 'rejected';
 
 export interface Task {
@@ -27,6 +29,12 @@ export interface Task {
   // Access control
   accessCodeDisabled: boolean;
   accessLogs: AccessLog[];
+  // Discord Assignment fields
+  status: TaskStatus;
+  discordUserId?: string;
+  assignedDiscordUsername?: string;
+  assignedAt?: string;
+  expiresAt?: string;
 }
 
 export interface AccessLog {
@@ -48,6 +56,15 @@ export interface Submission {
   submittedAt: string;
   isPaid: boolean;
   paidAt?: string;
+}
+
+export interface ActionLog {
+  id: string;
+  taskId: string;
+  action: string;
+  performedBy: string;
+  details: Record<string, unknown>;
+  createdAt: string;
 }
 
 export interface AdminSession {

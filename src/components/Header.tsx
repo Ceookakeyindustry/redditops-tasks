@@ -18,11 +18,11 @@ export default function Header() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group">
             <Image
-              src="/logo.svg"
+              src="/logo.png"
               alt="RedditOps Tasks"
               width={140}
               height={32}
-              className="h-8 w-auto"
+              className="h-8 w-auto rounded-lg"
               priority
             />
           </Link>

@@ -18,7 +18,8 @@ export default function HomePage() {
   useEffect(() => {
     (async () => {
       const { getTasks } = await import('@/lib/store');
-      setTasks(getTasks().filter((t: Task) => t.isActive));
+      const allTasks = await getTasks();
+      setTasks(allTasks.filter((t: Task) => t.isActive));
       setLoading(false);
     })();
   }, []);

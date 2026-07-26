@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import type { Task } from '@/lib/types';
 import { formatPayment } from '@/lib/types';
-import { Lock, Unlock, Check, AlertTriangle, Send, MessageCircle, FileText, DollarSign, ExternalLink, Image, Video } from 'lucide-react';
+import { Lock, Unlock, Check, AlertTriangle, Send, MessageCircle, FileText, DollarSign, ExternalLink, Image, Video, Clock, User, Shield } from 'lucide-react';
 import CopyButton from '@/components/CopyButton';
 import Link from 'next/link';
 
@@ -17,6 +17,7 @@ export default function TaskPage() {
   const [accessCode, setAccessCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [verifying, setVerifying] = useState(false);
 
   // Submission form
   const [showSubmitForm, setShowSubmitForm] = useState(false);
@@ -27,38 +28,96 @@ export default function TaskPage() {
   const [submitted, setSubmitted] = useState<{ refId: string } | null>(null);
   const [submitError, setSubmitError] = useState('');
 
+  // Time remaining
+  const [timeRemaining, setTimeRemaining] = useState<string>('');
+
   useEffect(() => {
     (async () => {
-      const { getTasks } = await import('@/lib/store');
-      const found = getTasks().find((t: Task) => t.taskId === taskId);
+      const { getTasks, checkAndExpireTasks } = await import('@/lib/store');
+      // Auto-expire any overdue tasks
+      await checkAndExpireTasks();
+      const allTasks = await getTasks();
+      const found = allTasks.find((t: Task) => t.taskId === taskId);
       setTask(found || null);
       setLoading(false);
     })();
   }, [taskId]);
 
+  // Update time remaining countdown
+  useEffect(() => {
+    if (!task || !task.expiresAt || task.status !== 'assigned') return;
+
+    const updateTimer = () => {
+      const now = new Date().getTime();
+      const expires = new Date(task.expiresAt!).getTime();
+      const diff = expires - now;
+
+      if (diff <= 0) {
+        setTimeRemaining('Expired');
+        return;
+      }
+
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      setTimeRemaining(`${hours}h ${minutes}m`);
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 60000); // Update every minute
+    return () => clearInterval(interval);
+  }, [task, unlocked]);
+
   const handleUnlock = async () => {
     if (!task) return;
-    const isSuccess = accessCode === task.accessCode && !task.accessCodeDisabled;
+    setVerifying(true);
+    setError('');
 
-    // Log via API for proper IP tracking
+    // Check access code
+    const isCodeValid = accessCode === task.accessCode && !task.accessCodeDisabled;
+
+    // Check task is assigned (Discord system requires assignment)
+    const isAssigned = task.status === 'assigned';
+    const hasSubmitted = task.status === 'submitted' || task.status === 'approved';
+    const isExpired = task.status === 'expired' || (task.expiresAt && new Date(task.expiresAt) <= new Date());
+
+    // Log the access attempt
     try {
       await fetch('/api/log-access', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ taskId, success: isSuccess }),
+        body: JSON.stringify({ taskId, success: isCodeValid && isAssigned && !hasSubmitted && !isExpired }),
       });
     } catch {
-      // Fallback to local log
       const { logAccess } = await import('@/lib/store');
-      logAccess(taskId, 'unknown', isSuccess);
+      await logAccess(taskId, 'unknown', isCodeValid && isAssigned && !hasSubmitted && !isExpired);
     }
 
-    if (isSuccess) {
-      setUnlocked(true);
-      setError('');
-    } else {
+    if (!isCodeValid) {
       setError('Invalid Task ID or Access Code.');
+      setVerifying(false);
+      return;
     }
+
+    if (!isAssigned) {
+      setError('This task is not assigned to anyone. An admin must assign it to you via Discord first.');
+      setVerifying(false);
+      return;
+    }
+
+    if (hasSubmitted) {
+      setError('This task has already been submitted and is no longer accessible.');
+      setVerifying(false);
+      return;
+    }
+
+    if (isExpired) {
+      setError('This task has expired. Please contact an admin for a new access code.');
+      setVerifying(false);
+      return;
+    }
+
+    setUnlocked(true);
+    setVerifying(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -78,8 +137,8 @@ export default function TaskPage() {
     setSubmitting(true);
 
     try {
-      const { createSubmission } = await import('@/lib/store');
-      const submission = createSubmission({
+      const { createSubmission, markTaskSubmitted } = await import('@/lib/store');
+      const submission = await createSubmission({
         taskId: task.taskId,
         discordUsername: discordUsername.trim(),
         proofLink: proofLink.trim(),
@@ -89,14 +148,11 @@ export default function TaskPage() {
         adminNote: undefined,
       });
 
-      // Sync with Google Sheets
-      try {
-        await fetch('/api/sheets', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'addSubmission', data: submission }),
-        });
-      } catch {}
+      // Mark the task as submitted
+      await markTaskSubmitted(task.taskId);
+
+      // Update local task state
+      setTask(prev => prev ? { ...prev, status: 'submitted' } : prev);
 
       setSubmitted({ refId: submission.refId });
       setShowSubmitForm(false);
@@ -105,6 +161,23 @@ export default function TaskPage() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const getTimeRemainingDisplay = () => {
+    if (!task || !task.expiresAt) return null;
+    const now = new Date().getTime();
+    const expires = new Date(task.expiresAt).getTime();
+    const diff = expires - now;
+
+    if (diff <= 0) return <span className="text-red-400">Expired</span>;
+
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+    // Color code based on time remaining
+    const colorClass = hours < 2 ? 'text-red-400' : hours < 6 ? 'text-[#F59E0B]' : 'text-emerald-400';
+
+    return <span className={colorClass}>{hours}h {minutes}m remaining</span>;
   };
 
   if (loading) {
@@ -149,7 +222,7 @@ export default function TaskPage() {
 
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Task Locked</h2>
             <p className="text-gray-500 mb-8">
-              Enter the Task ID and Access Code to view this task.
+              Enter the Access Code you received via Discord DM to view this task.
             </p>
 
             <div className="space-y-4 text-left">
@@ -171,14 +244,14 @@ export default function TaskPage() {
                 </label>
                 <input
                   type="text"
-                  placeholder="Enter access code..."
+                  placeholder="Enter access code from Discord DM..."
                   value={accessCode}
                   onChange={e => {
                     setAccessCode(e.target.value);
                     setError('');
                   }}
                   onKeyDown={e => e.key === 'Enter' && handleUnlock()}
-                  className="input-field"
+                  className="input-field tracking-widest font-mono uppercase"
                   autoFocus
                 />
               </div>
@@ -192,12 +265,22 @@ export default function TaskPage() {
 
               <button
                 onClick={handleUnlock}
-                disabled={!accessCode.trim()}
+                disabled={!accessCode.trim() || verifying}
                 className="btn-primary w-full mt-2"
               >
-                <Unlock className="w-4 h-4" />
-                Unlock Task
+                {verifying ? (
+                  <div className="w-5 h-5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                ) : (
+                  <>
+                    <Unlock className="w-4 h-4" />
+                    Unlock Task
+                  </>
+                )}
               </button>
+
+              <p className="text-xs text-gray-400 text-center mt-4">
+                Don&apos;t have an access code? Ask an admin to assign this task to you via Discord.
+              </p>
             </div>
           </div>
         </div>
@@ -209,6 +292,24 @@ export default function TaskPage() {
   return (
     <div className="flex-1">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        {/* Status Banner */}
+        {task.status === 'assigned' && task.expiresAt && (
+          <div className="mb-6 px-4 py-3 rounded-xl bg-[#F59E0B]/10 border border-[#F59E0B]/20 animate-fade-in flex items-center gap-3">
+            <Clock className="w-5 h-5 text-[#F59E0B] flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm text-[#F59E0B] font-medium">
+                This task is assigned to you exclusively
+              </p>
+              <p className="text-xs text-[#F59E0B]/70">
+                Time remaining: {getTimeRemainingDisplay()}
+              </p>
+            </div>
+            <div className="flex-shrink-0">
+              <Shield className="w-5 h-5 text-emerald-400" />
+            </div>
+          </div>
+        )}
+
         {/* Type Badge & Task ID */}
         <div className="flex items-center gap-3 mb-6 animate-fade-in">
           <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${
@@ -224,6 +325,12 @@ export default function TaskPage() {
             {task.type === 'comment' ? 'Comment Task' : 'Post Task'}
           </span>
           <span className="text-sm text-[#6B7280] font-mono">{task.taskId}</span>
+          {task.assignedDiscordUsername && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#5865F2]/10 border border-[#5865F2]/20 text-xs text-[#5865F2] font-medium">
+              <User className="w-3 h-3" />
+              {task.assignedDiscordUsername}
+            </span>
+          )}
         </div>
 
         {/* Title & Payment */}
@@ -264,7 +371,7 @@ export default function TaskPage() {
               <>
                 {task.redditPostUrl && (
                   <div className="card p-6 animate-fade-in">
-                    <h2 className="text-lg font-semibold text-gray-900 mb-4">Reddit Post</h2>
+                    <h2 className="text-lg font-semibold text-gray-900 mb-4">Reddit Post Link</h2>
                     <a
                       href={task.redditPostUrl}
                       target="_blank"
@@ -362,20 +469,40 @@ export default function TaskPage() {
               </>
             )}
 
-            {/* Completions Counter */}
-            {task.maxCompletions && (
+            {/* Task Status Info */}
+            {task.assignedAt && (
               <div className="card p-6 animate-fade-in">
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-500">Completions</span>
-                  <span className="text-gray-900 font-semibold">
-                    {task.completedCount || 0} / {task.maxCompletions}
-                  </span>
-                </div>
-                <div className="mt-3 w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] transition-all duration-500"
-                    style={{ width: `${Math.min(((task.completedCount || 0) / task.maxCompletions) * 100, 100)}%` }}
-                  />
+                <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-[#8B5CF6]" />
+                  Assignment Info
+                </h2>
+                <div className="space-y-2 text-sm text-gray-500">
+                  <p>
+                    <span className="font-medium">Assigned to:</span>{' '}
+                    <span className="text-gray-900">{task.assignedDiscordUsername}</span>
+                  </p>
+                  <p>
+                    <span className="font-medium">Assigned at:</span>{' '}
+                    <span className="text-gray-900">{new Date(task.assignedAt).toLocaleString()}</span>
+                  </p>
+                  {task.expiresAt && (
+                    <p>
+                      <span className="font-medium">Expires at:</span>{' '}
+                      <span className="text-gray-900">{new Date(task.expiresAt).toLocaleString()}</span>
+                      {' — '}
+                      {getTimeRemainingDisplay()}
+                    </p>
+                  )}
+                  <p>
+                    <span className="font-medium">Status:</span>{' '}
+                    <span className={`font-medium capitalize ${
+                      task.status === 'available' ? 'text-emerald-400' :
+                      task.status === 'assigned' ? 'text-blue-400' :
+                      task.status === 'submitted' ? 'text-[#F59E0B]' :
+                      task.status === 'approved' ? 'text-emerald-400' :
+                      'text-red-400'
+                    }`}>{task.status}</span>
+                  </p>
                 </div>
               </div>
             )}

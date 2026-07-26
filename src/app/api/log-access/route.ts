@@ -14,15 +14,12 @@ export async function POST(request: NextRequest) {
     const realIp = request.headers.get('x-real-ip');
     const ipAddress = forwarded?.split(',')[0]?.trim() || realIp || 'unknown';
 
-    // Dynamically import the store on the server side
-    let storeModule;
-    try {
-      storeModule = await import('@/lib/store');
-    } catch {
-      return NextResponse.json({ success: false, message: 'Store not available' });
-    }
-
-    storeModule.logAccess(taskId, ipAddress, success);
+    // Log via the data API
+    await fetch(`${request.nextUrl.origin}/api/data`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'logAccess', taskId, ipAddress, success }),
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -1,0 +1,17 @@
+{
+  "name": "redditops-discord-bot",
+  "version": "1.0.0",
+  "description": "Discord bot for RedditOps Tasks - Admin panel integration with Supabase",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "register": "node register-commands.js",
+    "dev": "node index.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.17.3",
+    "@supabase/supabase-js": "^2.110.8",
+    "dotenv": "^16.4.7",
+    "node-cron": "^3.0.3"
+  }
+}

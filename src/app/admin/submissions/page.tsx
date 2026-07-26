@@ -48,8 +48,10 @@ export default function AdminSubmissionsPage() {
         return;
       }
       setAuthenticated(true);
-      setSubmissions(getSubmissions());
-      setTasks(getTasks());
+      const subs = await getSubmissions();
+      setSubmissions(subs);
+      const allTasks = await getTasks();
+      setTasks(allTasks);
       setLoading(false);
     })();
   }, [router]);
@@ -63,24 +65,11 @@ export default function AdminSubmissionsPage() {
     setProcessingAction(submission.refId);
     try {
       const { updateSubmission } = await import('@/lib/store');
-      updateSubmission(submission.refId, {
+      await      await updateSubmission(submission.refId, {
         status: 'approved',
         rejectionReason: undefined,
         adminNote: undefined,
       });
-
-      // Try Sheets sync
-      try {
-        const { getAdminTokenForApi } = await import('@/lib/store');
-        await fetch('/api/sheets', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${getAdminTokenForApi()}`,
-          },
-          body: JSON.stringify({ action: 'updateSubmission', data: { refId: submission.refId, status: 'approved' } }),
-        });
-      } catch {}
 
       setSubmissions(prev =>
         prev.map(s =>
@@ -99,7 +88,7 @@ export default function AdminSubmissionsPage() {
     setProcessingAction(refId);
     try {
       const { updateSubmission } = await import('@/lib/store');
-      updateSubmission(refId, {
+      await updateSubmission(refId, {
         isPaid: true,
         paidAt: new Date().toISOString(),
       });
@@ -128,25 +117,20 @@ export default function AdminSubmissionsPage() {
     const reason = rejectionReason === 'Other (custom)' ? customReason : rejectionReason;
 
     try {
-      const { updateSubmission } = await import('@/lib/store');
-      updateSubmission(rejectingSubmission, {
+      const { updateSubmission, rejectTaskSubmission } = await import('@/lib/store');
+
+      // Update the submission status
+      await updateSubmission(rejectingSubmission, {
         status: 'rejected',
         rejectionReason: reason || undefined,
         adminNote: adminNote.trim() || undefined,
       });
 
-      // Try Sheets sync
-      try {
-        const { getAdminTokenForApi } = await import('@/lib/store');
-        await fetch('/api/sheets', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${getAdminTokenForApi()}`,
-          },
-          body: JSON.stringify({ action: 'updateSubmission', data: { refId: rejectingSubmission, status: 'rejected', adminNote: adminNote.trim() } }),
-        });
-      } catch {}
+      // Also reset the task to available with a new code
+      const submission = submissions.find(s => s.refId === rejectingSubmission);
+      if (submission) {
+        await rejectTaskSubmission(submission.taskId);
+      }
 
       setSubmissions(prev =>
         prev.map(s =>
@@ -184,7 +168,7 @@ export default function AdminSubmissionsPage() {
 
     const { updateSubmission } = await import('@/lib/store');
     for (const sub of toApprove) {
-      updateSubmission(sub.refId, {
+      await updateSubmission(sub.refId, {
         status: 'approved',
         rejectionReason: undefined,
         adminNote: undefined,
@@ -210,7 +194,7 @@ export default function AdminSubmissionsPage() {
 
     const { updateSubmission } = await import('@/lib/store');
     for (const sub of toReject) {
-      updateSubmission(sub.refId, {
+      await updateSubmission(sub.refId, {
         status: 'rejected',
         rejectionReason: 'Bulk rejected',
       });

@@ -16,7 +16,7 @@ export default function SubmissionStatusPage() {
   useEffect(() => {
     (async () => {
       const { getSubmission } = await import('@/lib/store');
-      const found = getSubmission(refId);
+      const found = await getSubmission(refId);
       setSubmission(found || null);
       setLoading(false);
     })();

@@ -125,22 +125,7 @@ export default function NewTaskPage() {
         video: taskType === 'post' ? (video || undefined) : undefined,
       };
 
-      const newTask = createTask(taskData);
-
-      // Try to sync with Google Sheets (non-blocking)
-      try {
-        const { getAdminTokenForApi } = await import('@/lib/store');
-        await fetch('/api/sheets', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${getAdminTokenForApi()}`,
-          },
-          body: JSON.stringify({ action: 'addTask', data: newTask }),
-        });
-      } catch {
-        // Sheets not configured, ignore
-      }
+      const newTask = await createTask(taskData);
 
       router.push('/admin/dashboard');
     } catch (err: unknown) {
