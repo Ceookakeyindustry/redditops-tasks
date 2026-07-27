@@ -77,6 +77,9 @@ function formatSubmission(row) {
     submittedAt: row.submitted_at,
     isPaid: row.is_paid || false,
     paidAt: row.paid_at,
+    screenshots: row.screenshots || [],
+    editHistory: row.edit_history || [],
+    showToClient: row.show_to_client || false,
   };
 }
 
@@ -118,6 +121,12 @@ async function updateTask(taskId, updates) {
   if (updates.assignedAt !== undefined) dbUpdates.assigned_at = updates.assignedAt;
   if (updates.expiresAt !== undefined) dbUpdates.expires_at = updates.expiresAt;
   if (updates.completedCount !== undefined) dbUpdates.completed_count = updates.completedCount;
+  if (updates.title !== undefined) dbUpdates.title = updates.title;
+  if (updates.payment !== undefined) dbUpdates.payment = updates.payment;
+  if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive;
+  if (updates.requirements !== undefined) dbUpdates.requirements = updates.requirements;
+  if (updates.instructions !== undefined) dbUpdates.instructions = updates.instructions;
+  if (updates.maxCompletions !== undefined) dbUpdates.max_completions = updates.maxCompletions;
 
   const { data, error } = await supabase
     .from('tasks')
@@ -337,6 +346,88 @@ async function getPaymentMethodByUsername(discordUsername) {
   return getUserPaymentMethod(taskData[0].discord_user_id);
 }
 
+/**
+ * Get all submissions
+ */
+async function getAllSubmissions() {
+  const supabase = getSupabase();
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from('submissions')
+    .select('*')
+    .order('submitted_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching submissions:', error.message);
+    return [];
+  }
+
+  return data.map(formatSubmission);
+}
+
+/**
+ * Get action logs for a task
+ */
+async function getActionLogs(taskId) {
+  const supabase = getSupabase();
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from('action_logs')
+    .select('*')
+    .eq('task_id', taskId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error(`Error fetching action logs for ${taskId}:`, error.message);
+    return [];
+  }
+
+  return data || [];
+}
+
+/**
+ * Delete a task
+ */
+async function deleteTask(taskId) {
+  const supabase = getSupabase();
+  if (!supabase) return false;
+
+  const { error } = await supabase
+    .from('tasks')
+    .delete()
+    .eq('task_id', taskId);
+
+  if (error) {
+    console.error(`Error deleting task ${taskId}:`, error.message);
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Get all submissions for a specific task
+ */
+async function getTaskSubmissions(taskId) {
+  const supabase = getSupabase();
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from('submissions')
+    .select('*')
+    .eq('task_id', taskId)
+    .order('submitted_at', { ascending: false });
+
+  if (error) {
+    console.error(`Error fetching submissions for ${taskId}:`, error.message);
+    return [];
+  }
+
+  return data.map(formatSubmission);
+}
+
 module.exports = {
   getSupabase,
   getTask,
@@ -344,8 +435,12 @@ module.exports = {
   getAllTasks,
   getTodayTasks,
   getTaskSubmission,
+  getTaskSubmissions,
+  getAllSubmissions,
   addActionLog,
   getExpiredTasks,
+  getActionLogs,
+  deleteTask,
   formatTask,
   formatSubmission,
   getUserPaymentMethod,

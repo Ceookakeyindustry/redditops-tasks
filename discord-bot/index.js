@@ -51,7 +51,7 @@ client.on(Events.InteractionCreate, async interaction => {
   if (!command) return;
 
   // Check admin permissions for admin commands
-  const adminCommands = ['assign', 'unassign', 'approve', 'reject', 'forceexpire', 'regencode', 'status'];
+  const adminCommands = ['assign', 'unassign', 'approve', 'reject', 'forceexpire', 'regencode', 'status', 'edit-task', 'submissions', 'actions', 'stats', 'worker', 'delete-task'];
   if (adminCommands.includes(interaction.commandName)) {
     if (!isAdmin(interaction.member)) {
       return interaction.reply({
