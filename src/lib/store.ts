@@ -51,7 +51,7 @@ export async function getAvailableTasks(): Promise<Task[]> {
   return tasks || [];
 }
 
-export async function createTask(data: any): Promise<Task> {
+export async function createTask(data: Record<string, any>): Promise<Task> {
   const { tasks } = await apiGet({ type: 'tasks' });
   // If no custom taskId provided, generate one
   if (!data.taskId) {

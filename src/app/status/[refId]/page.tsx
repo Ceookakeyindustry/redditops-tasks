@@ -47,10 +47,13 @@ export default function SubmissionPortalPage() {
   const getMissingScreenshotTypes = (): ScreenshotType[] => {
     if (!submission) return [];
     const uploadedTypes = (submission.screenshots || []).map(s => s.type);
-    // In a real app, this would check against task requirements
-    // For now, check against all types that haven't been uploaded yet (after initial)
+    // Show all non-initial screenshot types that haven't been uploaded yet
+    // The task's requiredScreenshots config determines which are actually required
     return ALL_SCREENSHOT_TYPES.filter(t => t !== 'initial' && !uploadedTypes.includes(t));
   };
+
+  // This will be enhanced later to check the task's requiredScreenshots
+  // Once the task data is also available in the submission portal
 
   const handleEditLink = async () => {
     if (!submission || !newProofLink.trim()) return;
