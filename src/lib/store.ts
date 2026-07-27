@@ -214,19 +214,6 @@ export async function markTaskSubmitted(taskId: string): Promise<Task | undefine
   return updated;
 }
 
-export async function approveTaskSubmission(taskId: string, adminUsername?: string): Promise<Task | undefined> {
-  const updated = await updateTask(taskId, { status: 'approved' });
-  if (updated) {
-    await addActionLog({
-      taskId,
-      action: 'approved',
-      performedBy: adminUsername || 'system',
-      details: { assignedDiscordUsername: updated.assignedDiscordUsername },
-    });
-  }
-  return updated;
-}
-
 export async function rejectTaskSubmission(taskId: string, adminUsername?: string): Promise<Task | undefined> {
   // Save the previous assignee BEFORE updating (updateTask clears it)
   const currentTask = await getTask(taskId);

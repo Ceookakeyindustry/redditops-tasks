@@ -43,23 +43,39 @@ export async function POST(request: NextRequest) {
     const clientUser = process.env.CLIENT_ADMIN_USERNAME;
     const clientPass = process.env.CLIENT_ADMIN_PASSWORD;
 
-    // Validate based on role
-    if (!adminUser || !adminPass || !clientUser || !clientPass) {
-      return NextResponse.json(
-        { success: false, error: 'Admin credentials not configured. Set environment variables first.' },
-        { status: 500 }
-      );
-    }
-
-    if (role === 'operations' && username === adminUser && password === adminPass) {
+    // Validate credentials based on the requested role (not all roles)
+    if (role === 'operations') {
+      if (!adminUser || !adminPass) {
+        return NextResponse.json(
+          { success: false, error: 'Admin credentials not configured.' },
+          { status: 500 }
+        );
+      }
+      if (username !== adminUser || password !== adminPass) {
+        return NextResponse.json({ success: false, error: 'Invalid credentials' }, { status: 401 });
+      }
       const token = generateAdminToken();
       return NextResponse.json({ success: true, username, role: 'operations', token });
     }
     
-    if (role === 'client' && username === clientUser && password === clientPass) {
+    if (role === 'client') {
+      if (!clientUser || !clientPass) {
+        return NextResponse.json(
+          { success: false, error: 'Client admin credentials not configured.' },
+          { status: 500 }
+        );
+      }
+      if (username !== clientUser || password !== clientPass) {
+        return NextResponse.json({ success: false, error: 'Invalid credentials' }, { status: 401 });
+      }
       const token = generateAdminToken();
       return NextResponse.json({ success: true, username, role: 'client', token });
     }
+
+    return NextResponse.json(
+      { success: false, error: 'Invalid role specified.' },
+      { status: 400 }
+    );
 
     return NextResponse.json(
       { success: false, error: 'Invalid credentials' },

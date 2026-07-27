@@ -17,6 +17,7 @@ export default function TaskPage() {
   const [accessCode, setAccessCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [verifying, setVerifying] = useState(false);
 
   // Submission form
@@ -38,6 +39,7 @@ export default function TaskPage() {
 
   useEffect(() => {
     let cancelled = false;
+    setLoadError(false);
     (async () => {
       try {
         const { getTasks, checkAndExpireTasks } = await import('@/lib/store');
@@ -50,7 +52,7 @@ export default function TaskPage() {
           setUnlocked(true);
         }
       } catch (err) {
-        console.error('Failed to load task:', err);
+        if (!cancelled) setLoadError(true);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -206,6 +208,25 @@ export default function TaskPage() {
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 rounded-full border-2 border-[#8B5CF6] border-t-transparent animate-spin" />
           <p className="text-gray-500 text-sm">Loading task...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto px-4">
+          <div className="w-20 h-20 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto mb-6">
+            <AlertTriangle className="w-10 h-10 text-red-400" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-3">Something went wrong</h2>
+          <p className="text-gray-500 mb-2">
+            Failed to load this task. Please check your connection and try again.
+          </p>
+          <button onClick={() => { setLoading(true); setLoadError(false); setTask(null); window.location.reload(); }} className="btn-primary inline-flex">
+            Retry
+          </button>
         </div>
       </div>
     );
