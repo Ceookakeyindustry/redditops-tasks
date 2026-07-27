@@ -3,8 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import type { Submission, ScreenshotType, ScreenshotProof, SubmissionStatus } from '@/lib/types';
-import { SCREENSHOT_TYPE_LABELS, ALL_SCREENSHOT_TYPES, SUBMISSION_STATUS_LABELS, isEditableStatus, getNextStatus } from '@/lib/types';
+import type { Submission, ScreenshotType, ScreenshotProof } from '@/lib/types';
+import { SCREENSHOT_TYPE_LABELS, ALL_SCREENSHOT_TYPES, isEditableStatus } from '@/lib/types';
 import {
   Clock, CheckCircle, XCircle, AlertTriangle, ArrowLeft, DollarSign,
   Upload, Image, Edit3, ExternalLink, Save, X, Eye, Download,
