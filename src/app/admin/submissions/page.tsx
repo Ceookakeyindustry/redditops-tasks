@@ -50,11 +50,6 @@ export default function AdminSubmissionsPage() {
   const [refIdSaving, setRefIdSaving] = useState(false);
   const [refIdError, setRefIdError] = useState('');
 
-  // Custom label editing
-  const [editingLabel, setEditingLabel] = useState<string | null>(null);
-  const [newLabel, setNewLabel] = useState('');
-  const [labelSaving, setLabelSaving] = useState(false);
-
   // Rejection modal
   const [rejectingSubmission, setRejectingSubmission] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
@@ -547,50 +542,6 @@ export default function AdminSubmissionsPage() {
                         View Proof
                       </a>
                     )}
-
-                    {/* Custom Label */}
-                    <div className="mt-2">
-                      {editingLabel === submission.refId ? (
-                        <div className="flex gap-2 items-center">
-                          <input
-                            type="text"
-                            value={newLabel}
-                            onChange={e => setNewLabel(e.target.value)}
-                            className="input-field text-xs py-1 w-48"
-                            placeholder="Set a custom label..."
-                            autoFocus
-                            onKeyDown={e => {
-                              if (e.key === 'Enter') {
-                                (async () => {
-                                  setLabelSaving(true);
-                                  try {
-                                    const { updateSubmission } = await import('@/lib/store');
-                                    await updateSubmission(submission.refId, { customLabel: newLabel.trim() || undefined });
-                                    setSubmissions(prev => prev.map(s => s.refId === submission.refId ? { ...s, customLabel: newLabel.trim() || undefined } : s));
-                                    setEditingLabel(null);
-                                  } catch {}
-                                  setLabelSaving(false);
-                                })();
-                              }
-                              if (e.key === 'Escape') setEditingLabel(null);
-                            }}
-                          />
-                          <button onClick={() => setEditingLabel(null)} className="text-[10px] text-gray-400 hover:text-gray-900">x</button>
-                        </div>
-                      ) : (
-                        <button                            onClick={() => { setEditingLabel(submission.refId); setNewLabel(submission.customLabel || ''); }}
-                          className="text-[11px] text-gray-400 hover:text-[#8B5CF6] transition-colors inline-flex items-center gap-1"
-                        >
-                          {submission.customLabel ? (
-                            <span className="px-2 py-0.5 rounded-full bg-[#8B5CF6]/10 text-[#8B5CF6] border border-[#8B5CF6]/20 text-[10px] font-medium">
-                              🏷️ {submission.customLabel}
-                            </span>
-                          ) : (
-                            <span className="opacity-0 group-hover:opacity-100 transition-opacity">+ Add Label</span>
-                          )}
-                        </button>
-                      )}
-                    </div>
 
                     {/* Screenshot thumbnails */}
                     {submission.screenshots && submission.screenshots.length > 0 && (

@@ -56,8 +56,8 @@ function formatSubmission(row: any) {
     paidAt: row.paid_at,
     screenshots: row.screenshots || [],
     editHistory: row.edit_history || [],
-    customLabel: row.custom_label || '',
     showToClient: row.show_to_client || false,
+    customLabel: '' as string | undefined, // Loaded separately to avoid schema issues
   };
 }
 
