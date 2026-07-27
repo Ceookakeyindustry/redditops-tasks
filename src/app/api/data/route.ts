@@ -146,18 +146,18 @@ export async function GET(request: NextRequest) {
 
         const tasks = (tasksData.data || []).map(formatTask);
         const submissions = (submissionsData.data || []).map(formatSubmission);
-        const approved = submissions.filter((s: any) => s.status === 'approved');
+        const inProgress = ['submitted', 'in_review', '24hr_pending', '24hr_done', '48hr_pending', '48hr_done', 'processing'];
+        const paidSubs = submissions.filter((s: any) => s.status === 'paid');
 
         const stats = {
           totalTasks: tasks.length,
           activeTasks: tasks.filter((t: any) => t.isActive).length,
           totalSubmissions: submissions.length,
-          pendingSubmissions: submissions.filter((s: any) => s.status === 'pending').length,
-          approvedSubmissions: approved.length,
+          pendingSubmissions: submissions.filter((s: any) => inProgress.includes(s.status)).length,
+          inProgressSubmissions: submissions.filter((s: any) => inProgress.includes(s.status)).length,
+          paidSubmissions: paidSubs.length,
           rejectedSubmissions: submissions.filter((s: any) => s.status === 'rejected').length,
-          totalPayout: approved.reduce((sum: number, s: any) => sum + s.payment, 0),
-          paidPayout: approved.filter((s: any) => s.isPaid).reduce((sum: number, s: any) => sum + s.payment, 0),
-          unpaidPayout: approved.filter((s: any) => !s.isPaid).reduce((sum: number, s: any) => sum + s.payment, 0),
+          totalPayout: paidSubs.reduce((sum: number, s: any) => sum + s.payment, 0),
         };
 
         return NextResponse.json({ stats });

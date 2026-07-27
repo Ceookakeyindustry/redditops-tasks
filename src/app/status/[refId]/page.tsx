@@ -3,8 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import type { Submission, ScreenshotType, ScreenshotProof } from '@/lib/types';
-import { SCREENSHOT_TYPE_LABELS, ALL_SCREENSHOT_TYPES } from '@/lib/types';
+import type { Submission, ScreenshotType, ScreenshotProof, SubmissionStatus } from '@/lib/types';
+import { SCREENSHOT_TYPE_LABELS, ALL_SCREENSHOT_TYPES, SUBMISSION_STATUS_LABELS, isEditableStatus, getNextStatus } from '@/lib/types';
 import {
   Clock, CheckCircle, XCircle, AlertTriangle, ArrowLeft, DollarSign,
   Upload, Image, Edit3, ExternalLink, Save, X, Eye,
@@ -164,21 +164,69 @@ export default function SubmissionPortalPage() {
   }
 
   const statusConfig: Record<string, { icon: any; color: string; bg: string; border: string; label: string; description: string }> = {
-    pending: {
+    submitted: {
       icon: Clock,
       color: 'text-[#F59E0B]',
       bg: 'bg-[#F59E0B]/10',
       border: 'border-[#F59E0B]/20',
-      label: 'Pending Review',
-      description: 'Your submission is waiting to be reviewed by the admin.',
+      label: 'Submitted',
+      description: 'Your submission has been received and is waiting to be reviewed.',
     },
-    approved: {
+    in_review: {
+      icon: Clock,
+      color: 'text-blue-400',
+      bg: 'bg-blue-500/10',
+      border: 'border-blue-500/20',
+      label: 'In Review',
+      description: 'An admin is currently reviewing your submission.',
+    },
+    '24hr_pending': {
+      icon: Clock,
+      color: 'text-[#F59E0B]',
+      bg: 'bg-[#F59E0B]/10',
+      border: 'border-[#F59E0B]/20',
+      label: '24hr Screenshot Needed',
+      description: 'Please upload your 24-hour Reddit Insights screenshot.',
+    },
+    '24hr_done': {
       icon: CheckCircle,
       color: 'text-[#10B981]',
       bg: 'bg-[#10B981]/10',
       border: 'border-[#10B981]/20',
-      label: 'Approved',
-      description: 'Congratulations! Your submission has been approved.',
+      label: '24hr Screenshot Done',
+      description: 'Your 24-hour screenshot has been received.',
+    },
+    '48hr_pending': {
+      icon: Clock,
+      color: 'text-[#F59E0B]',
+      bg: 'bg-[#F59E0B]/10',
+      border: 'border-[#F59E0B]/20',
+      label: '48hr Screenshot Needed',
+      description: 'Please upload your 48-hour proof screenshot.',
+    },
+    '48hr_done': {
+      icon: CheckCircle,
+      color: 'text-[#10B981]',
+      bg: 'bg-[#10B981]/10',
+      border: 'border-[#10B981]/20',
+      label: '48hr Screenshot Done',
+      description: 'Your 48-hour screenshot has been received.',
+    },
+    processing: {
+      icon: Clock,
+      color: 'text-[#8B5CF6]',
+      bg: 'bg-[#8B5CF6]/10',
+      border: 'border-[#8B5CF6]/20',
+      label: 'Processing Payment',
+      description: 'Your submission is being processed for payment.',
+    },
+    paid: {
+      icon: CheckCircle,
+      color: 'text-[#10B981]',
+      bg: 'bg-[#10B981]/10',
+      border: 'border-[#10B981]/20',
+      label: 'Paid',
+      description: 'Congratulations! Your submission has been approved and paid.',
     },
     rejected: {
       icon: XCircle,
@@ -191,7 +239,7 @@ export default function SubmissionPortalPage() {
   };
 
   const config = statusConfig[submission.status];
-  const isEditable = submission.status === 'pending';
+  const isEditable = isEditableStatus(submission.status);
   const missingTypes = getMissingScreenshotTypes();
   const existingScreenshots = getScreenshotsByType();
 
@@ -315,41 +363,44 @@ export default function SubmissionPortalPage() {
               </div>
             )}
 
-            {/* Approved Message */}
-            {submission.status === 'approved' && (
+            {/* Paid Message */}
+            {submission.status === 'paid' && (
               <div className="mt-6 space-y-3">
                 <div className="p-5 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
-                  <p className="text-emerald-400 text-center font-medium">Congratulations! Your submission has been approved.</p>
+                  <p className="text-emerald-400 text-center font-medium">Congratulations! Your submission has been approved and paid.</p>
                 </div>
                 <div className="p-5 rounded-xl border bg-white/50">
                   <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <DollarSign className="w-4 h-4 text-[#8B5CF6]" /> Payment Status
+                    <DollarSign className="w-4 h-4 text-[#8B5CF6]" /> Payment
                   </h3>
                   <div className="flex items-center justify-between">
                     <span className="text-gray-500 text-sm">Amount</span>
                     <span className="text-emerald-400 font-bold text-lg">${submission.payment.toFixed(2)}</span>
                   </div>
-                  <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
-                    <span className="text-gray-500 text-sm">Status</span>
-                    {submission.isPaid ? (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-[#8B5CF6]/10 text-[#8B5CF6] border border-[#8B5CF6]/20">
-                        <CheckCircle className="w-3 h-3" /> Paid
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-[#F59E0B]/10 text-[#F59E0B] border border-[#F59E0B]/20">
-                        <Clock className="w-3 h-3" /> Pending Payment
-                      </span>
-                    )}
-                  </div>
+                  {submission.paidAt && (
+                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
+                      <span className="text-gray-500 text-sm">Paid On</span>
+                      <span className="text-gray-900 text-sm">{new Date(submission.paidAt).toLocaleDateString()}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
 
-            {/* Pending Message */}
-            {submission.status === 'pending' && (
+            {/* Processing Message */}
+            {submission.status === 'processing' && (
+              <div className="mt-6 p-5 rounded-xl bg-[#8B5CF6]/5 border border-[#8B5CF6]/20">
+                <p className="text-[#8B5CF6] text-center text-sm">
+                  Your submission is being processed for payment. You will be notified once paid.
+                </p>
+              </div>
+            )}
+
+            {/* In Review / Awaiting screenshots messages */}
+            {(submission.status === 'submitted' || submission.status === 'in_review') && (
               <div className="mt-6 p-5 rounded-xl bg-[#F59E0B]/5 border border-[#F59E0B]/20">
                 <p className="text-[#F59E0B] text-center text-sm">
-                  Your submission is in the queue and will be reviewed shortly.
+                  {submission.status === 'submitted' ? 'Your submission has been received and is in the queue.' : 'An admin is reviewing your submission.'}
                 </p>
               </div>
             )}

@@ -114,16 +114,16 @@ export default function AdminDashboardPage() {
       border: 'border-purple-500/20',
     },
     {
-      label: 'Pending',
-      value: stats?.pendingSubmissions || 0,
+      label: 'In Progress',
+      value: stats?.inProgressSubmissions || 0,
       icon: Clock,
       color: 'text-[#F59E0B]',
       bg: 'bg-[#F59E0B]/10',
       border: 'border-[#F59E0B]/20',
     },
     {
-      label: 'Approved',
-      value: stats?.approvedSubmissions || 0,
+      label: 'Paid',
+      value: stats?.paidSubmissions || 0,
       icon: CheckCircle,
       color: 'text-[#10B981]',
       bg: 'bg-[#10B981]/10',
@@ -146,16 +146,6 @@ export default function AdminDashboardPage() {
       border: 'border-emerald-500/20',
       isPayout: true,
     },
-    {
-      label: 'Paid',
-      value: formatPayment(stats?.paidPayout || 0),
-      icon: CheckCircle,
-      color: 'text-[#8B5CF6]',
-      bg: 'bg-[#8B5CF6]/10',
-      border: 'border-[#8B5CF6]/20',
-      isPayout: true,
-    },
-
   ];
 
   return (

@@ -15,9 +15,11 @@ import {
   Image,
   Eye,
   Send,
+  ChevronRight,
+  ChevronDown,
 } from 'lucide-react';
-import type { Submission, Task } from '@/lib/types';
-import { formatDate, PRESET_REJECTION_REASONS, SCREENSHOT_TYPE_LABELS } from '@/lib/types';
+import type { Submission, Task, SubmissionStatus } from '@/lib/types';
+import { formatDate, PRESET_REJECTION_REASONS, SCREENSHOT_TYPE_LABELS, SUBMISSION_STATUS_LABELS, SUBMISSION_STATUS_FLOW, getNextStatus } from '@/lib/types';
 import ConfettiEffect from '@/components/ConfettiEffect';
 
 export default function AdminSubmissionsPage() {
@@ -27,7 +29,8 @@ export default function AdminSubmissionsPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'paid' | 'unpaid'>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusDropdown, setStatusDropdown] = useState<string | null>(null);
 
   // Bulk selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -67,46 +70,29 @@ export default function AdminSubmissionsPage() {
     return task?.title || 'Unknown Task';
   };
 
-  const handleApprove = async (submission: Submission) => {
-    setProcessingAction(submission.refId);
+  const handleStatusChange = async (submission: Submission, newStatus: SubmissionStatus) => {
+    setProcessingAction(`${submission.refId}-status`);
     try {
       const { updateSubmission } = await import('@/lib/store');
-      await updateSubmission(submission.refId, {
-        status: 'approved',
-        rejectionReason: undefined,
-        adminNote: undefined,
-      });
-
+      await updateSubmission(submission.refId, { status: newStatus });
       setSubmissions(prev =>
         prev.map(s =>
-          s.refId === submission.refId ? { ...s, status: 'approved' as const } : s
+          s.refId === submission.refId ? { ...s, status: newStatus } : s
         )
       );
-
-      // Trigger confetti! Counter ensures it re-fires every time
-      setConfettiTrigger(t => t + 1);
+      if (newStatus === 'paid') {
+        setConfettiTrigger(t => t + 1);
+      }
     } finally {
       setProcessingAction(null);
+      setStatusDropdown(null);
     }
   };
 
-  const handleMarkPaid = async (refId: string) => {
-    setProcessingAction(refId);
-    try {
-      const { updateSubmission } = await import('@/lib/store');
-      await updateSubmission(refId, {
-        isPaid: true,
-        paidAt: new Date().toISOString(),
-      });
-
-      setSubmissions(prev =>
-        prev.map(s =>
-          s.refId === refId ? { ...s, isPaid: true, paidAt: new Date().toISOString() } : s
-        )
-      );
-    } finally {
-      setProcessingAction(null);
-    }
+  const handleAdvanceStatus = async (submission: Submission) => {
+    const next = getNextStatus(submission.status);
+    if (!next) return;
+    await handleStatusChange(submission, next);
   };
 
   const openRejectModal = (submission: Submission) => {
@@ -114,6 +100,7 @@ export default function AdminSubmissionsPage() {
     setRejectionReason('');
     setCustomReason('');
     setAdminNote('');
+    setStatusDropdown(null);
   };
 
   const handleReject = async () => {
@@ -168,23 +155,21 @@ export default function AdminSubmissionsPage() {
   };
 
   const handleBulkApprove = async () => {
-    const toApprove = filteredSubmissions.filter(s => selectedIds.has(s.refId) && s.status === 'pending');
+    const toApprove = filteredSubmissions.filter(s => selectedIds.has(s.refId) && s.status === 'submitted');
     if (toApprove.length === 0) return;
     setBulkProcessing(true);
 
     const { updateSubmission } = await import('@/lib/store');
     for (const sub of toApprove) {
       await updateSubmission(sub.refId, {
-        status: 'approved',
-        rejectionReason: undefined,
-        adminNote: undefined,
+        status: 'in_review',
       });
     }
 
     setSubmissions(prev =>
       prev.map(s =>
-        selectedIds.has(s.refId) && s.status === 'pending'
-          ? { ...s, status: 'approved' as const }
+        selectedIds.has(s.refId) && s.status === 'submitted'
+          ? { ...s, status: 'in_review' as const }
           : s
       )
     );
@@ -194,7 +179,7 @@ export default function AdminSubmissionsPage() {
   };
 
   const handleBulkReject = async () => {
-    const toReject = filteredSubmissions.filter(s => selectedIds.has(s.refId) && s.status === 'pending');
+    const toReject = filteredSubmissions.filter(s => selectedIds.has(s.refId) && s.status === 'submitted');
     if (toReject.length === 0) return;
     setBulkProcessing(true);
 
@@ -208,7 +193,7 @@ export default function AdminSubmissionsPage() {
 
     setSubmissions(prev =>
       prev.map(s =>
-        selectedIds.has(s.refId) && s.status === 'pending'
+        selectedIds.has(s.refId) && s.status === 'submitted'
           ? { ...s, status: 'rejected' as const, rejectionReason: 'Bulk rejected' }
           : s
       )
@@ -220,8 +205,8 @@ export default function AdminSubmissionsPage() {
   const filteredSubmissions = submissions
     .filter(s => {
       if (statusFilter === 'all') return true;
-      if (statusFilter === 'paid') return s.status === 'approved' && s.isPaid;
-      if (statusFilter === 'unpaid') return s.status === 'approved' && !s.isPaid;
+      if (statusFilter === 'screenshots') return ['24hr_pending', '24hr_done', '48hr_pending', '48hr_done'].includes(s.status);
+      if (statusFilter === 'in_progress') return ['submitted', 'in_review', '24hr_pending', '24hr_done', '48hr_pending', '48hr_done', 'processing'].includes(s.status);
       return s.status === statusFilter;
     })
     .filter(s => {
@@ -236,8 +221,8 @@ export default function AdminSubmissionsPage() {
     })
     .sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
 
-  // Only allow selecting pending submissions for bulk actions
-  const selectableSubmissions = filteredSubmissions.filter(s => s.status === 'pending');
+  // Only allow selecting submitted submissions for bulk actions
+  const selectableSubmissions = filteredSubmissions.filter(s => s.status === 'submitted');
   const allSelected = selectableSubmissions.length > 0 && selectableSubmissions.every(s => selectedIds.has(s.refId));
 
   if (loading) {
@@ -281,28 +266,27 @@ export default function AdminSubmissionsPage() {
                 className="input-field !pl-12"
               />
             </div>
-            <div className="flex gap-2">
-              {(['all', 'pending', 'approved', 'paid', 'unpaid', 'rejected'] as const).map(status => (
+            <div className="flex gap-2 flex-wrap">
+              {[
+                { key: 'all', label: 'All', color: '#8B5CF6' },
+                { key: 'submitted', label: 'Submitted', color: '#F59E0B' },
+                { key: 'in_review', label: 'In Review', color: '#3B82F6' },
+                { key: 'screenshots', label: 'Screenshots', color: '#A855F7' },
+                { key: 'processing', label: 'Processing', color: '#8B5CF6' },
+                { key: 'paid', label: 'Paid ✓', color: '#10B981' },
+                { key: 'rejected', label: 'Rejected', color: '#EF4444' },
+              ].map(({ key, label, color }) => (
                 <button
-                  key={status}
-                  onClick={() => setStatusFilter(status)}
+                  key={key}
+                  onClick={() => setStatusFilter(key)}
                   className={`px-4 py-3 rounded-xl text-sm font-medium capitalize transition-all duration-200 ${
-                    statusFilter === status
-                      ? status === 'all'
-                        ? 'bg-[#8B5CF6] text-white'
-                        : status === 'pending'
-                        ? 'bg-[#F59E0B] text-white'
-                        : status === 'approved'
-                        ? 'bg-[#10B981] text-white'
-                        : status === 'paid'
-                        ? 'bg-[#8B5CF6] text-white'
-                        : status === 'unpaid'
-                        ? 'bg-[#F59E0B] text-white'
-                        : 'bg-[#EF4444] text-white'
+                    statusFilter === key
+                      ? 'text-white'
                       : 'bg-gray-100 text-gray-500 hover:text-gray-900'
                   }`}
+                  style={statusFilter === key ? { backgroundColor: color } : undefined}
                 >
-                  {status === 'paid' ? 'Paid ✓' : status === 'unpaid' ? 'Unpaid' : status}
+                  {key === 'all' ? 'All' : key === 'screenshots' ? 'Screenshots' : key === 'in_review' ? 'In Review' : label}
                 </button>
               ))}
             </div>
@@ -394,7 +378,7 @@ export default function AdminSubmissionsPage() {
                   {/* Checkbox + Info */}
                   <div className="flex items-start gap-4 flex-1 min-w-0">
                     {/* Checkbox */}
-                    {submission.status === 'pending' && (
+                    {submission.status === 'submitted' && (
                       <label className="mt-1 cursor-pointer flex-shrink-0">
                         <input
                           type="checkbox"
@@ -404,25 +388,65 @@ export default function AdminSubmissionsPage() {
                         />
                       </label>
                     )}
-                    {/* Select all spacer for non-pending */}
-                    {submission.status !== 'pending' && <div className="w-5 flex-shrink-0" />}
+                    {/* Select all spacer for non-submitted */}
+                    {submission.status !== 'submitted' && <div className="w-5 flex-shrink-0" />}
 
                     <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-3 mb-2">
                       <span className="font-mono text-sm text-[#8B5CF6] font-medium">
                         {submission.refId}
                       </span>
-                      <span
-                        className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${
-                          submission.status === 'pending'
-                            ? 'badge-pending'
-                            : submission.status === 'approved'
-                            ? 'badge-approved'
-                            : 'badge-rejected'
-                        }`}
-                      >
-                        {submission.status}
-                      </span>
+                      <div className="relative">
+                        <button
+                          onClick={() => setStatusDropdown(statusDropdown === submission.refId ? null : submission.refId)}
+                          className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize inline-flex items-center gap-1 ${
+                            submission.status === 'submitted' ? 'badge-pending' :
+                            submission.status === 'in_review' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' :
+                            submission.status === '24hr_pending' || submission.status === '48hr_pending' ? 'bg-[#F59E0B]/10 text-[#F59E0B] border border-[#F59E0B]/20' :
+                            submission.status === '24hr_done' || submission.status === '48hr_done' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                            submission.status === 'processing' ? 'bg-[#8B5CF6]/10 text-[#8B5CF6] border border-[#8B5CF6]/20' :
+                            submission.status === 'paid' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                            'badge-rejected'
+                          }`}
+                        >
+                          {SUBMISSION_STATUS_LABELS[submission.status] || submission.status}
+                          <ChevronDown className="w-3 h-3" />
+                        </button>
+
+                        {statusDropdown === submission.refId && (
+                          <>
+                            <div className="fixed inset-0 z-40" onClick={() => setStatusDropdown(null)} />
+                            <div className="absolute left-0 top-full mt-1 z-50 w-48 rounded-xl bg-white border border-gray-200 shadow-lg py-1 animate-fade-in">
+                              {SUBMISSION_STATUS_FLOW.map(status => (
+                                <button
+                                  key={status}
+                                  onClick={() => handleStatusChange(submission, status)}
+                                  disabled={processingAction === `${submission.refId}-status`}
+                                  className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
+                                    submission.status === status
+                                      ? 'text-[#8B5CF6] font-medium bg-[#8B5CF6]/5'
+                                      : 'text-gray-700 hover:bg-gray-50'
+                                  }`}
+                                >
+                                  <span className="flex items-center gap-2">
+                                    {SUBMISSION_STATUS_LABELS[status]}
+                                    {submission.status === status && (
+                                      <span className="w-1.5 h-1.5 rounded-full bg-[#8B5CF6]" />
+                                    )}
+                                  </span>
+                                </button>
+                              ))}
+                              <div className="border-t border-gray-100 my-1" />
+                              <button
+                                onClick={() => openRejectModal(submission)}
+                                className="w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors"
+                              >
+                                Reject
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
                     </div>
 
                     <h3 className="text-gray-900 font-medium mb-1 truncate">
@@ -494,10 +518,11 @@ export default function AdminSubmissionsPage() {
                       <p className="text-lg font-bold text-emerald-400">${submission.payment.toFixed(2)}</p>
                     </div>
 
-                    {submission.status === 'pending' && (
+                    {/* Advance status button */}
+                    {submission.status !== 'paid' && submission.status !== 'rejected' && (
                       <div className="flex gap-2">
                         <button
-                          onClick={() => handleApprove(submission)}
+                          onClick={() => handleAdvanceStatus(submission)}
                           disabled={processingAction === submission.refId}
                           className="btn-success px-4 py-3 text-sm"
                         >
@@ -505,8 +530,8 @@ export default function AdminSubmissionsPage() {
                             <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
                           ) : (
                             <>
-                              <CheckCircle className="w-4 h-4" />
-                              Approve
+                              <ChevronRight className="w-4 h-4" />
+                              {submission.status === 'processing' ? 'Mark Paid' : 'Next Stage'}
                             </>
                           )}
                         </button>
@@ -521,28 +546,27 @@ export default function AdminSubmissionsPage() {
                       </div>
                     )}
 
-                    {/* Payment status for approved submissions */}
-                    {submission.status === 'approved' && (
-                      <div className="flex items-center gap-2">
-                        {submission.isPaid ? (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#8B5CF6]/10 text-[#8B5CF6] border border-[#8B5CF6]/20 text-xs font-medium">
-                            <DollarSign className="w-3.5 h-3.5" />
-                            Paid
-                          </span>
-                        ) : (
-                          <button
-                            onClick={() => handleMarkPaid(submission.refId)}
-                            disabled={processingAction === submission.refId}
-                            className="px-3 py-2 rounded-xl bg-[#8B5CF6]/10 text-[#8B5CF6] border border-[#8B5CF6]/20 hover:bg-[#8B5CF6]/20 text-xs font-medium transition-all inline-flex items-center gap-1.5"
-                          >
-                            {processingAction === submission.refId ? (
-                              <div className="w-3.5 h-3.5 rounded-full border-2 border-[#8B5CF6]/30 border-t-[#8B5CF6] animate-spin" />
-                            ) : (
-                              <DollarSign className="w-3.5 h-3.5" />
-                            )}
-                            Mark as Paid
-                          </button>
-                        )}
+                    {/* Paid badge */}
+                    {submission.status === 'paid' && (
+                      <div className="flex gap-2">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-medium">
+                          <DollarSign className="w-3.5 h-3.5" />
+                          Paid ✓
+                        </span>
+                        <button
+                          onClick={async () => {
+                            const { updateSubmission } = await import('@/lib/store');
+                            await updateSubmission(submission.refId, { status: 'processing' });
+                            setSubmissions(prev =>
+                              prev.map(s =>
+                                s.refId === submission.refId ? { ...s, status: 'processing' as const } : s
+                              )
+                            );
+                          }}
+                          className="btn-secondary px-3 py-2 text-xs"
+                        >
+                          Revert
+                        </button>
                       </div>
                     )}
 
@@ -552,17 +576,19 @@ export default function AdminSubmissionsPage() {
                           onClick={async () => {
                             const { updateSubmission } = await import('@/lib/store');
                             await updateSubmission(submission.refId, {
-                              status: 'pending',
+                              status: 'submitted',
+                              rejectionReason: undefined,
+                              adminNote: undefined,
                             });
                             setSubmissions(prev =>
                               prev.map(s =>
-                                s.refId === submission.refId ? { ...s, status: 'pending' as const } : s
+                                s.refId === submission.refId ? { ...s, status: 'submitted' as const, rejectionReason: undefined, adminNote: undefined } : s
                               )
                             );
                           }}
                           className="btn-secondary px-3 py-2 text-xs"
                         >
-                          Revert to Pending
+                          Revert to Submitted
                         </button>
                         <Link
                           href={`/admin/tasks/${submission.taskId}/edit`}
@@ -572,31 +598,11 @@ export default function AdminSubmissionsPage() {
                         </Link>
                       </div>
                     )}
-                    {submission.status === 'approved' && (
-                      <div className="flex gap-2">
-                        <button
-                          onClick={async () => {
-                            const { updateSubmission } = await import('@/lib/store');
-                            await updateSubmission(submission.refId, {
-                              status: 'pending',
-                            });
-                            setSubmissions(prev =>
-                              prev.map(s =>
-                                s.refId === submission.refId ? { ...s, status: 'pending' as const } : s
-                              )
-                            );
-                          }}
-                          className="btn-secondary px-3 py-2 text-xs"
-                        >
-                          Revert to Pending
-                        </button>
-                      </div>
-                    )}
                   </div>
                 </div>
 
                 {/* Client Review Toggle */}
-                {submission.status === 'pending' && (
+                {(submission.status === 'submitted' || submission.status === 'in_review') && (
                   <div className="mt-4 pt-4 border-t border-gray-200">
                     <label className="flex items-center gap-3 cursor-pointer group">
                       <input

@@ -2,7 +2,42 @@ export type TaskType = 'comment' | 'post';
 
 export type TaskStatus = 'available' | 'assigned' | 'submitted' | 'approved' | 'expired';
 
-export type SubmissionStatus = 'pending' | 'approved' | 'rejected';
+export type SubmissionStatus = 'submitted' | 'in_review' | '24hr_pending' | '24hr_done' | '48hr_pending' | '48hr_done' | 'processing' | 'paid' | 'rejected';
+
+export const SUBMISSION_STATUS_LABELS: Record<SubmissionStatus, string> = {
+  submitted: 'Submitted',
+  in_review: 'In Review',
+  '24hr_pending': '24hr SS Pending',
+  '24hr_done': '24hr SS Done',
+  '48hr_pending': '48hr SS Pending',
+  '48hr_done': '48hr SS Done',
+  processing: 'Processing',
+  paid: 'Paid',
+  rejected: 'Rejected',
+};
+
+export const SUBMISSION_STATUS_FLOW: SubmissionStatus[] = [
+  'submitted',
+  'in_review',
+  '24hr_pending',
+  '24hr_done',
+  '48hr_pending',
+  '48hr_done',
+  'processing',
+  'paid',
+];
+
+export function isEditableStatus(status: SubmissionStatus): boolean {
+  return status !== 'paid' && status !== 'rejected';
+}
+
+export function getNextStatus(status: SubmissionStatus): SubmissionStatus | null {
+  const idx = SUBMISSION_STATUS_FLOW.indexOf(status);
+  if (idx >= 0 && idx < SUBMISSION_STATUS_FLOW.length - 1) {
+    return SUBMISSION_STATUS_FLOW[idx + 1];
+  }
+  return null;
+}
 
 export type AdminRole = 'operations' | 'client';
 
@@ -85,7 +120,6 @@ export interface Submission {
   rejectionReason?: string;
   adminNote?: string;
   submittedAt: string;
-  isPaid: boolean;
   paidAt?: string;
   screenshots: ScreenshotProof[];
   editHistory: EditLog[];
@@ -130,11 +164,10 @@ export interface DashboardStats {
   activeTasks: number;
   totalSubmissions: number;
   pendingSubmissions: number;
-  approvedSubmissions: number;
+  inProgressSubmissions: number;
+  paidSubmissions: number;
   rejectedSubmissions: number;
   totalPayout: number;
-  paidPayout: number;
-  unpaidPayout: number;
 }
 
 export const PRESET_REJECTION_REASONS = [

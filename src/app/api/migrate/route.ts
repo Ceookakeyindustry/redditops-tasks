@@ -23,6 +23,16 @@ ALTER TABLE tasks ADD COLUMN IF NOT EXISTS required_screenshots TEXT[] DEFAULT A
 ALTER TABLE submissions ADD COLUMN IF NOT EXISTS screenshots JSONB DEFAULT '[]'::jsonb;
 ALTER TABLE submissions ADD COLUMN IF NOT EXISTS edit_history JSONB DEFAULT '[]'::jsonb;
 ALTER TABLE submissions ADD COLUMN IF NOT EXISTS show_to_client BOOLEAN DEFAULT false;
+-- Update submission status constraint to support new pipeline
+ALTER TABLE submissions DROP CONSTRAINT IF EXISTS submissions_status_check;
+ALTER TABLE submissions ADD CONSTRAINT submissions_status_check
+  CHECK (status IN ('submitted','in_review','24hr_pending','24hr_done','48hr_pending','48hr_done','processing','paid','rejected'));
+-- Set default status to 'submitted' instead of 'pending'
+ALTER TABLE submissions ALTER COLUMN status SET DEFAULT 'submitted';
+-- Update any existing 'pending' submissions to 'submitted'
+UPDATE submissions SET status = 'submitted' WHERE status = 'pending';
+-- Update any existing 'approved' submissions to 'paid'
+UPDATE submissions SET status = 'paid' WHERE status = 'approved';
 NOTIFY pgrst, 'reload schema';`;
 
   // Try Supabase pg-meta endpoint (this IS different from what we tried before)

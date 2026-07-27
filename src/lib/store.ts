@@ -2,7 +2,7 @@
 // All functions are async and work both client and server side
 
 import type { Task, Submission, DashboardStats, ActionLog, AdminRole, ScreenshotProof, ChatMessage } from './types';
-import { generateTaskId, generateRefId, generateAccessCode } from './types';
+import { generateTaskId, generateRefId, generateAccessCode, isEditableStatus } from './types';
 
 const API_BASE = '/api/data';
 
@@ -318,8 +318,7 @@ export async function createSubmission(data: {
   const submissionData = {
     ...data,
     refId: generateRefId(),
-    status: 'pending',
-    isPaid: false,
+    status: 'submitted',
     screenshots: data.screenshots || [],
     editHistory: [],
     submittedAt: new Date().toISOString(),
@@ -337,7 +336,7 @@ export async function updateSubmission(refId: string, data: Partial<Submission>)
 
 export async function editSubmissionProofLink(refId: string, newProofLink: string): Promise<Submission | undefined> {
   const submission = await getSubmission(refId);
-  if (!submission || submission.status !== 'pending') return undefined;
+  if (!submission || !isEditableStatus(submission.status)) return undefined;
   
   const editEntry = {
     field: 'proofLink',
@@ -357,7 +356,7 @@ export async function editSubmissionProofLink(refId: string, newProofLink: strin
 
 export async function editSubmissionNote(refId: string, newNote: string): Promise<Submission | undefined> {
   const submission = await getSubmission(refId);
-  if (!submission || submission.status !== 'pending') return undefined;
+  if (!submission || !isEditableStatus(submission.status)) return undefined;
   
   const editEntry = {
     field: 'note',
@@ -397,7 +396,7 @@ export async function uploadScreenshot(file: File): Promise<string> {
 
 export async function addScreenshotToSubmission(refId: string, screenshot: ScreenshotProof): Promise<Submission | undefined> {
   const submission = await getSubmission(refId);
-  if (!submission || submission.status === 'approved') return undefined;
+  if (!submission || submission.status === 'paid' || submission.status === 'rejected') return undefined;
   
   const screenshots = [...(submission.screenshots || [])];
   
@@ -460,11 +459,10 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     activeTasks: 0,
     totalSubmissions: 0,
     pendingSubmissions: 0,
-    approvedSubmissions: 0,
+    inProgressSubmissions: 0,
+    paidSubmissions: 0,
     rejectedSubmissions: 0,
     totalPayout: 0,
-    paidPayout: 0,
-    unpaidPayout: 0,
   };
 }
 

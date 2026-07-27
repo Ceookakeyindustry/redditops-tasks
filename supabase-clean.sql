@@ -59,7 +59,7 @@ CREATE TABLE IF NOT EXISTS submissions (
   task_id TEXT NOT NULL REFERENCES tasks(task_id) ON DELETE CASCADE,
   discord_username TEXT NOT NULL, proof_link TEXT NOT NULL, note TEXT,
   payment DECIMAL(10, 2) NOT NULL,
-  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected')),
+  status TEXT NOT NULL DEFAULT 'submitted' CHECK (status IN ('submitted','in_review','24hr_pending','24hr_done','48hr_pending','48hr_done','processing','paid','rejected')),
   rejection_reason TEXT, admin_note TEXT,
   submitted_at TIMESTAMPTZ DEFAULT NOW(),
   is_paid BOOLEAN DEFAULT false, paid_at TIMESTAMPTZ,

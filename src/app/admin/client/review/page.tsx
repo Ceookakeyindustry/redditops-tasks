@@ -16,8 +16,8 @@ import {
   AlertTriangle,
   ArrowLeft,
 } from 'lucide-react';
-import type { Submission, Task, ScreenshotProof } from '@/lib/types';
-import { formatDate, SCREENSHOT_TYPE_LABELS, PRESET_REJECTION_REASONS } from '@/lib/types';
+import type { Submission, Task, ScreenshotProof, SubmissionStatus } from '@/lib/types';
+import { formatDate, SCREENSHOT_TYPE_LABELS, PRESET_REJECTION_REASONS, SUBMISSION_STATUS_LABELS, SUBMISSION_STATUS_FLOW, getNextStatus } from '@/lib/types';
 
 export default function ClientReviewDashboard() {
   const router = useRouter();
@@ -27,7 +27,7 @@ export default function ClientReviewDashboard() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'flagged'>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
   // Selected submission for detail view
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
@@ -85,18 +85,19 @@ export default function ClientReviewDashboard() {
     try {
       const { updateSubmission } = await import('@/lib/store');
       await updateSubmission(submission.refId, {
-        status: 'approved',
+        status: 'paid',
         rejectionReason: undefined,
         adminNote: adminNote.trim() || undefined,
+        paidAt: new Date().toISOString(),
       });
 
       setSubmissions(prev =>
         prev.map(s =>
-          s.refId === submission.refId ? { ...s, status: 'approved' as const } : s
+          s.refId === submission.refId ? { ...s, status: 'paid' as const, paidAt: new Date().toISOString() } : s
         )
       );
       if (selectedSubmission?.refId === submission.refId) {
-        setSelectedSubmission({ ...submission, status: 'approved' });
+        setSelectedSubmission({ ...submission, status: 'paid', paidAt: new Date().toISOString() });
       }
       setAdminNote('');
     } finally {
@@ -218,7 +219,7 @@ export default function ClientReviewDashboard() {
               </div>
             </div>
             <p className="text-2xl font-bold text-gray-900 mb-1">
-              {clientSubmissions.filter(s => s.status === 'pending').length}
+              {clientSubmissions.filter(s => s.status === 'submitted' || s.status === 'in_review').length}
             </p>
             <p className="text-xs text-gray-400">Pending Review</p>
           </div>
@@ -229,7 +230,7 @@ export default function ClientReviewDashboard() {
               </div>
             </div>
             <p className="text-2xl font-bold text-gray-900 mb-1">
-              {clientSubmissions.filter(s => s.status === 'approved').length}
+              {clientSubmissions.filter(s => s.status === 'paid').length}
             </p>
             <p className="text-xs text-gray-400">Total Approved</p>
           </div>
@@ -248,24 +249,25 @@ export default function ClientReviewDashboard() {
                 className="input-field !pl-12"
               />
             </div>
-            <div className="flex gap-2">
-              {(['all', 'pending', 'approved', 'rejected', 'flagged'] as const).map(status => (
+            <div className="flex gap-2 flex-wrap">
+              {[
+                { key: 'all', label: 'All', color: '#10B981' },
+                { key: 'submitted', label: 'Submitted', color: '#F59E0B' },
+                { key: 'in_review', label: 'In Review', color: '#3B82F6' },
+                { key: 'paid', label: 'Paid ✓', color: '#10B981' },
+                { key: 'rejected', label: 'Rejected', color: '#EF4444' },
+              ].map(({ key, label, color }) => (
                 <button
-                  key={status}
-                  onClick={() => setStatusFilter(status)}
+                  key={key}
+                  onClick={() => setStatusFilter(key)}
                   className={`px-4 py-3 rounded-xl text-sm font-medium capitalize transition-all duration-200 ${
-                    statusFilter === status
-                      ? status === 'all'
-                        ? 'bg-emerald-500 text-white'
-                        : status === 'pending'
-                        ? 'bg-[#F59E0B] text-white'
-                        : status === 'approved'
-                        ? 'bg-[#10B981] text-white'
-                        : 'bg-[#EF4444] text-white'
+                    statusFilter === key
+                      ? 'text-white'
                       : 'bg-gray-100 text-gray-500 hover:text-gray-900'
                   }`}
+                  style={statusFilter === key ? { backgroundColor: color } : undefined}
                 >
-                  {status}
+                  {key === 'all' ? 'All' : key === 'in_review' ? 'In Review' : label}
                 </button>
               ))}
             </div>
@@ -294,14 +296,13 @@ export default function ClientReviewDashboard() {
                 </div>
                 <span
                   className={`px-3 py-1.5 rounded-full text-xs font-medium capitalize ${
-                    selectedSubmission.status === 'pending'
-                      ? 'badge-pending'
-                      : selectedSubmission.status === 'approved'
-                      ? 'badge-approved'
-                      : 'badge-rejected'
+                    selectedSubmission.status === 'submitted' ? 'badge-pending' :
+                    selectedSubmission.status === 'in_review' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' :
+                    selectedSubmission.status === 'paid' ? 'badge-approved' :
+                    'badge-rejected'
                   }`}
                 >
-                  {selectedSubmission.status}
+                  {SUBMISSION_STATUS_LABELS[selectedSubmission.status] || selectedSubmission.status}
                 </span>
               </div>
 
@@ -379,8 +380,8 @@ export default function ClientReviewDashboard() {
                 )}
               </div>
 
-              {/* Action Buttons (only for pending) */}
-              {selectedSubmission.status === 'pending' && (
+              {/* Action Buttons (only for non-terminal statuses) */}
+              {selectedSubmission.status !== 'paid' && selectedSubmission.status !== 'rejected' && (
                 <div className="flex gap-4 pt-4 border-t border-gray-200">
                   <button
                     onClick={() => handleApprove(selectedSubmission)}
@@ -452,17 +453,16 @@ export default function ClientReviewDashboard() {
                           <span className="font-mono text-sm text-[#8B5CF6] font-medium">
                             {submission.refId}
                           </span>
-                          <span
-                            className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${
-                              submission.status === 'pending'
-                                ? 'badge-pending'
-                                : submission.status === 'approved'
-                                ? 'badge-approved'
-                                : 'badge-rejected'
-                            }`}
-                          >
-                            {submission.status}
-                          </span>
+                      <span
+                        className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${
+                          submission.status === 'submitted' ? 'badge-pending' :
+                          submission.status === 'in_review' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' :
+                          submission.status === 'paid' ? 'badge-approved' :
+                          'badge-rejected'
+                        }`}
+                      >
+                        {SUBMISSION_STATUS_LABELS[submission.status] || submission.status}
+                      </span>
                         </div>
                         <h3 className="text-gray-900 font-medium mb-1 truncate">
                           {getTaskTitle(submission.taskId)}
