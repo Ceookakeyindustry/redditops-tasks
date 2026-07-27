@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
 
     // Operations Admin credentials (env vars override these fallbacks)
     const adminUser = process.env.ADMIN_USERNAME || 'tranquil';
-    const adminPass = process.env.ADMIN_PASSWORD || 'tranquil123';
+    const adminPass = process.env.ADMIN_PASSWORD || '0lkhfgote';
     
     // Client Admin credentials (env vars override these fallbacks)
     const clientUser = process.env.CLIENT_ADMIN_USERNAME || 'discordtranquil_mango';
