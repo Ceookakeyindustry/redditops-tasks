@@ -28,12 +28,14 @@ function formatTask(row: any) {
     images: row.images,
     video: row.video,
     accessCodeDisabled: row.access_code_disabled || false,
+    isPublic: row.is_public || false,
     accessLogs: row.access_logs || [],
     status: row.status || 'available',
     discordUserId: row.discord_user_id,
     assignedDiscordUsername: row.assigned_discord_username,
     assignedAt: row.assigned_at,
     expiresAt: row.expires_at,
+    requiredScreenshots: row.required_screenshots || ['initial'],
   };
 }
 
@@ -53,6 +55,8 @@ function formatSubmission(row: any) {
     submittedAt: row.submitted_at,
     isPaid: row.is_paid || false,
     paidAt: row.paid_at,
+    screenshots: row.screenshots || [],
+    editHistory: row.edit_history || [],
   };
 }
 

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import type { Task } from '@/lib/types';
 import { formatPayment } from '@/lib/types';
-import { Lock, Unlock, Check, AlertTriangle, Send, MessageCircle, FileText, DollarSign, ExternalLink, Image, Video, Clock, User, Shield } from 'lucide-react';
+import { Lock, Unlock, Check, AlertTriangle, Send, MessageCircle, FileText, DollarSign, ExternalLink, Image, Video, Clock, User, Shield, Upload, X } from 'lucide-react';
 import CopyButton from '@/components/CopyButton';
 import Link from 'next/link';
 
@@ -25,8 +25,13 @@ export default function TaskPage() {
   const [proofLink, setProofLink] = useState('');
   const [note, setNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState<{ refId: string } | null>(null);
+  const [submitted, setSubmitted] = useState<{ refId: string; requiresMoreScreenshots: boolean } | null>(null);
   const [submitError, setSubmitError] = useState('');
+  
+  // Screenshot upload
+  const [initialScreenshot, setInitialScreenshot] = useState<File | null>(null);
+  const [initialScreenshotPreview, setInitialScreenshotPreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   // Time remaining
   const [timeRemaining, setTimeRemaining] = useState<string>('');
@@ -120,6 +125,11 @@ export default function TaskPage() {
     setVerifying(false);
   };
 
+  const uploadFile = async (file: File): Promise<string> => {
+    const { uploadScreenshot } = await import('@/lib/store');
+    return uploadScreenshot(file);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!task) return;
@@ -137,6 +147,20 @@ export default function TaskPage() {
     setSubmitting(true);
 
     try {
+      // Upload initial screenshot if provided
+      let screenshots: any[] = [];
+      if (initialScreenshot) {
+        setUploading(true);
+        const url = await uploadFile(initialScreenshot);
+        screenshots.push({
+          type: 'initial',
+          url,
+          uploadedAt: new Date().toISOString(),
+          fileName: initialScreenshot.name,
+        });
+        setUploading(false);
+      }
+
       const { createSubmission, markTaskSubmitted } = await import('@/lib/store');
       const submission = await createSubmission({
         taskId: task.taskId,
@@ -146,7 +170,8 @@ export default function TaskPage() {
         payment: task.payment,
         rejectionReason: undefined,
         adminNote: undefined,
-      });
+        screenshots,
+      } as any);
 
       // Mark the task as submitted
       await markTaskSubmitted(task.taskId);
@@ -154,12 +179,13 @@ export default function TaskPage() {
       // Update local task state
       setTask(prev => prev ? { ...prev, status: 'submitted' } : prev);
 
-      setSubmitted({ refId: submission.refId });
+      setSubmitted({ refId: submission.refId, requiresMoreScreenshots: (task.requiredScreenshots?.length || 1) > 1 });
       setShowSubmitForm(false);
-    } catch {
+    } catch (err) {
       setSubmitError('Failed to submit. Please try again.');
     } finally {
       setSubmitting(false);
+      setUploading(false);
     }
   };
 
@@ -519,13 +545,20 @@ export default function TaskPage() {
                   </div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">Submitted Successfully!</h3>
                   <p className="text-gray-500 text-sm mb-4">
-                    Save your reference ID to check your submission status.
+                    Save your reference ID to check your submission status and upload additional screenshots.
                   </p>
                   <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 mb-4">
                     <CopyButton text={submitted.refId} label={`Copy: ${submitted.refId}`} />
                   </div>
+                  {submitted.requiresMoreScreenshots && (
+                    <div className="mb-4 p-3 rounded-xl bg-[#F59E0B]/10 border border-[#F59E0B]/20">
+                      <p className="text-xs text-[#F59E0B] font-medium">
+                        📸 This task requires additional screenshots. Use your Reference ID to upload them later.
+                      </p>
+                    </div>
+                  )}
                   <Link href={`/status/${submitted.refId}`} className="text-[#8B5CF6] hover:text-[#A78BFA] text-sm font-medium transition-colors">
-                    Check Submission Status →
+                    Open Submission Portal →
                   </Link>
                 </div>
               ) : showSubmitForm ? (
@@ -533,6 +566,9 @@ export default function TaskPage() {
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">
                     Submit Your Work
                   </h3>
+                  <p className="text-xs text-gray-400 mb-2">
+                    You only need to submit the initial proof now. Additional screenshots can be uploaded later using your Reference ID.
+                  </p>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-500 mb-2">
@@ -550,11 +586,11 @@ export default function TaskPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-500 mb-2">
-                      Reddit Proof Link *
+                      Reddit Post/Comment Permalink *
                     </label>
                     <input
                       type="url"
-                      placeholder="https://reddit.com/..."
+                      placeholder="https://reddit.com/r/.../comments/..."
                       value={proofLink}
                       onChange={e => setProofLink(e.target.value)}
                       className="input-field"
@@ -564,14 +600,57 @@ export default function TaskPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-500 mb-2">
-                      Optional Note
+                      Initial Proof Screenshot {task.requiredScreenshots?.includes('initial') ? '*' : '(optional)'}
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <label className="flex items-center gap-2 px-4 py-3 rounded-xl border border-dashed border-gray-300 text-gray-500 hover:border-[#8B5CF6]/30 hover:text-[#8B5CF6] cursor-pointer transition-all flex-1">
+                        <Upload className="w-4 h-4" />
+                        <span className="text-sm">
+                          {initialScreenshot ? initialScreenshot.name : 'Upload screenshot...'}
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={e => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              setInitialScreenshot(file);
+                              setInitialScreenshotPreview(URL.createObjectURL(file));
+                            }
+                          }}
+                          className="hidden"
+                        />
+                      </label>
+                      {initialScreenshot && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setInitialScreenshot(null);
+                            setInitialScreenshotPreview(null);
+                          }}
+                          className="text-red-400 hover:text-red-300 text-sm"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                    {initialScreenshotPreview && (
+                      <div className="mt-2 relative w-32 h-24 rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
+                        <img src={initialScreenshotPreview} alt="Preview" className="w-full h-full object-cover" />
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-500 mb-2">
+                      Optional Notes
                     </label>
                     <textarea
                       placeholder="Any additional information..."
                       value={note}
                       onChange={e => setNote(e.target.value)}
                       className="textarea-field"
-                      rows={3}
+                      rows={2}
                     />
                   </div>
 
@@ -592,10 +671,10 @@ export default function TaskPage() {
                     </button>
                     <button
                       type="submit"
-                      disabled={submitting}
+                      disabled={submitting || uploading}
                       className="btn-primary flex-1"
                     >
-                      {submitting ? (
+                      {submitting || uploading ? (
                         <div className="w-5 h-5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
                       ) : (
                         <>

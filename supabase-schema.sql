@@ -28,13 +28,16 @@ CREATE TABLE IF NOT EXISTS tasks (
   video TEXT,
   -- Access control
   access_code_disabled BOOLEAN DEFAULT false,
+  is_public BOOLEAN DEFAULT false,
   access_logs JSONB DEFAULT '[]'::jsonb,
   -- Discord Assignment fields
   status TEXT NOT NULL DEFAULT 'available' CHECK (status IN ('available', 'assigned', 'submitted', 'approved', 'expired')),
   discord_user_id TEXT,
   assigned_discord_username TEXT,
   assigned_at TIMESTAMPTZ,
-  expires_at TIMESTAMPTZ
+  expires_at TIMESTAMPTZ,
+  -- Screenshot requirements
+  required_screenshots TEXT[] DEFAULT ARRAY['initial']
 );
 
 -- ==========================================
@@ -53,7 +56,11 @@ CREATE TABLE IF NOT EXISTS submissions (
   admin_note TEXT,
   submitted_at TIMESTAMPTZ DEFAULT NOW(),
   is_paid BOOLEAN DEFAULT false,
-  paid_at TIMESTAMPTZ
+  paid_at TIMESTAMPTZ,
+  -- Screenshots storage
+  screenshots JSONB DEFAULT '[]'::jsonb,
+  -- Edit history
+  edit_history JSONB DEFAULT '[]'::jsonb
 );
 
 -- ==========================================
@@ -65,6 +72,18 @@ CREATE TABLE IF NOT EXISTS action_logs (
   action TEXT NOT NULL,
   performed_by TEXT NOT NULL,
   details JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ==========================================
+-- ADMINS TABLE (for dual role support)
+-- ==========================================
+CREATE TABLE IF NOT EXISTS admins (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  username TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  role TEXT NOT NULL CHECK (role IN ('operations', 'client')),
+  display_name TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -93,6 +112,7 @@ CREATE INDEX IF NOT EXISTS idx_submissions_status ON submissions(status);
 CREATE INDEX IF NOT EXISTS idx_action_logs_task_id ON action_logs(task_id);
 CREATE INDEX IF NOT EXISTS idx_action_logs_created_at ON action_logs(created_at);
 CREATE INDEX IF NOT EXISTS idx_payment_methods_discord_user_id ON payment_methods(discord_user_id);
+CREATE INDEX IF NOT EXISTS idx_admins_username ON admins(username);
 
 -- ==========================================
 -- ROW LEVEL SECURITY
@@ -100,6 +120,7 @@ CREATE INDEX IF NOT EXISTS idx_payment_methods_discord_user_id ON payment_method
 ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE submissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE action_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE admins ENABLE ROW LEVEL SECURITY;
 
 -- Tasks: Public read access for available/active tasks
 CREATE POLICY "Anyone can view available tasks"
@@ -155,3 +176,16 @@ CREATE POLICY "Admin can view action logs"
 CREATE POLICY "Admin can insert action logs"
   ON action_logs FOR INSERT
   WITH CHECK (auth.role() = 'authenticated');
+
+-- Admins: Admin can select
+CREATE POLICY "Admin can view admins"
+  ON admins FOR SELECT
+  USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Admin can insert admins"
+  ON admins FOR INSERT
+  WITH CHECK (auth.role() = 'authenticated');
+
+CREATE POLICY "Admin can update admins"
+  ON admins FOR UPDATE
+  USING (auth.role() = 'authenticated');

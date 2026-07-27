@@ -4,6 +4,33 @@ export type TaskStatus = 'available' | 'assigned' | 'submitted' | 'approved' | '
 
 export type SubmissionStatus = 'pending' | 'approved' | 'rejected';
 
+export type AdminRole = 'operations' | 'client';
+
+export type ScreenshotType = 'initial' | '24h_insights' | '48h_visibility' | '48h_insights';
+
+export const SCREENSHOT_TYPE_LABELS: Record<ScreenshotType, string> = {
+  initial: 'Initial Screenshot',
+  '24h_insights': '24-hour Reddit Insights',
+  '48h_visibility': '48-hour Visibility',
+  '48h_insights': '48-hour Reddit Insights',
+};
+
+export const ALL_SCREENSHOT_TYPES: ScreenshotType[] = ['initial', '24h_insights', '48h_visibility', '48h_insights'];
+
+export interface ScreenshotProof {
+  type: ScreenshotType;
+  url: string;
+  uploadedAt: string;
+  fileName?: string;
+}
+
+export interface EditLog {
+  field: string;
+  oldValue?: string;
+  newValue: string;
+  editedAt: string;
+}
+
 export interface Task {
   id: string;
   taskId: string;
@@ -28,6 +55,7 @@ export interface Task {
   video?: string;
   // Access control
   accessCodeDisabled: boolean;
+  isPublic: boolean;
   accessLogs: AccessLog[];
   // Discord Assignment fields
   status: TaskStatus;
@@ -35,6 +63,8 @@ export interface Task {
   assignedDiscordUsername?: string;
   assignedAt?: string;
   expiresAt?: string;
+  // Screenshot requirements
+  requiredScreenshots: ScreenshotType[];
 }
 
 export interface AccessLog {
@@ -56,6 +86,8 @@ export interface Submission {
   submittedAt: string;
   isPaid: boolean;
   paidAt?: string;
+  screenshots: ScreenshotProof[];
+  editHistory: EditLog[];
 }
 
 export interface ActionLog {
@@ -70,6 +102,15 @@ export interface ActionLog {
 export interface AdminSession {
   isAuthenticated: boolean;
   username: string;
+  role: AdminRole;
+}
+
+export interface AdminUser {
+  id: string;
+  username: string;
+  role: AdminRole;
+  displayName?: string;
+  createdAt: string;
 }
 
 export interface DashboardStats {

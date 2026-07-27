@@ -10,9 +10,12 @@ import {
   RefreshCw,
   Copy,
   Check,
+  Globe,
+  Lock,
+  Camera,
 } from 'lucide-react';
-import type { Task } from '@/lib/types';
-import { generateAccessCode } from '@/lib/types';
+import type { Task, ScreenshotType } from '@/lib/types';
+import { generateAccessCode, ALL_SCREENSHOT_TYPES, SCREENSHOT_TYPE_LABELS } from '@/lib/types';
 
 export default function EditTaskPage() {
   const params = useParams();
@@ -38,6 +41,10 @@ export default function EditTaskPage() {
   const [accessCode, setAccessCode] = useState('');
   const [accessCodeDisabled, setAccessCodeDisabled] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
+
+  // Access mode & screenshot requirements
+  const [isPublic, setIsPublic] = useState(false);
+  const [requiredScreenshots, setRequiredScreenshots] = useState<ScreenshotType[]>(['initial']);
 
   // Comment-specific
   const [redditPostUrl, setRedditPostUrl] = useState('');
@@ -72,6 +79,8 @@ export default function EditTaskPage() {
       setIsActive(found.isActive);
       setAccessCode(found.accessCode);
       setAccessCodeDisabled(found.accessCodeDisabled);
+      setIsPublic(found.isPublic ?? false);
+      setRequiredScreenshots(found.requiredScreenshots || ['initial']);
       setRedditPostUrl(found.redditPostUrl || '');
       setCommentText(found.commentText || '');
       setTargetSubreddits(found.targetSubreddits || '');
@@ -108,7 +117,7 @@ export default function EditTaskPage() {
 
       const { updateTask } = await import('@/lib/store');
 
-      const updateData: Parameters<typeof updateTask>[1] = {
+      const updateData: any = {
         title: title.trim(),
         payment: parseFloat(payment),
         requirements: requirements.trim(),
@@ -117,6 +126,8 @@ export default function EditTaskPage() {
         isActive,
         accessCode: accessCode.trim(),
         accessCodeDisabled,
+        isPublic,
+        requiredScreenshots,
         redditPostUrl: task?.type === 'comment' ? (redditPostUrl.trim() || undefined) : undefined,
         commentText: task?.type === 'comment' ? (commentText.trim() || undefined) : undefined,
         targetSubreddits: task?.type === 'post' ? (targetSubreddits.trim() || undefined) : undefined,
@@ -180,6 +191,14 @@ export default function EditTaskPage() {
                 Inactive
               </span>
             )}
+            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${
+              isPublic
+                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                : 'bg-[#F59E0B]/10 text-[#F59E0B] border border-[#F59E0B]/20'
+            }`}>
+              {isPublic ? <Globe className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
+              {isPublic ? 'Public' : 'Protected'}
+            </span>
           </div>
         </div>
 
@@ -270,6 +289,87 @@ export default function EditTaskPage() {
                 />
                 <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-[#8B5CF6] transition-colors peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all" />
               </label>
+            </div>
+          </div>
+
+          {/* Access Mode */}
+          <div className="card p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Task Access</h2>
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                type="button"
+                onClick={() => setIsPublic(false)}
+                className={`p-5 rounded-xl border-2 text-left transition-all duration-200 ${
+                  !isPublic
+                    ? 'border-[#8B5CF6] bg-[#8B5CF6]/5'
+                    : 'border-gray-200 bg-transparent hover:border-[#8B5CF6]/30'
+                }`}
+              >
+                <div className="w-10 h-10 rounded-lg bg-[#F59E0B]/10 border border-[#F59E0B]/20 flex items-center justify-center mb-3">
+                  <Lock className="w-5 h-5 text-[#F59E0B]" />
+                </div>
+                <h3 className="text-gray-900 font-semibold mb-1">Protected</h3>
+                <p className="text-gray-500 text-xs">Access code required to view task</p>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsPublic(true)}
+                className={`p-5 rounded-xl border-2 text-left transition-all duration-200 ${
+                  isPublic
+                    ? 'border-emerald-500 bg-emerald-500/5'
+                    : 'border-gray-200 bg-transparent hover:border-emerald-500/30'
+                }`}
+              >
+                <div className="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-3">
+                  <Globe className="w-5 h-5 text-emerald-400" />
+                </div>
+                <h3 className="text-gray-900 font-semibold mb-1">Public</h3>
+                <p className="text-gray-500 text-xs">Anyone with the link can view</p>
+              </button>
+            </div>
+          </div>
+
+          {/* Screenshot Requirements */}
+          <div className="card p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <Camera className="w-5 h-5 text-[#8B5CF6]" />
+              Required Proof Screenshots
+            </h2>
+            <p className="text-sm text-gray-500 mb-4">
+              Select which screenshots workers must upload. Initial is always required for first submission.
+            </p>
+            <div className="space-y-3">
+              {ALL_SCREENSHOT_TYPES.map(type => (
+                <label
+                  key={type}
+                  className={`flex items-center gap-3 p-4 rounded-xl cursor-pointer transition-all ${
+                    requiredScreenshots.includes(type)
+                      ? 'bg-[#8B5CF6]/5 border border-[#8B5CF6]/20'
+                      : 'bg-gray-100 border border-gray-200 hover:border-[#8B5CF6]/30'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={requiredScreenshots.includes(type)}
+                    onChange={e => {
+                      if (e.target.checked) {
+                        setRequiredScreenshots(prev => [...prev, type]);
+                      } else {
+                        setRequiredScreenshots(prev => prev.filter(t => t !== type));
+                      }
+                    }}
+                    className="rounded border-gray-300 text-[#8B5CF6] focus:ring-[#8B5CF6]"
+                  />
+                  <div>
+                    <span className="text-sm font-medium text-gray-900">
+                      {SCREENSHOT_TYPE_LABELS[type]}
+                    </span>
+                    <p className="text-xs text-gray-400">
+                      {type === 'initial' ? 'Required for initial submission' : 'Can be uploaded later via the submission portal'}
+                    </p>
+                  </div>
+                </label>
+              ))}
             </div>
           </div>
 

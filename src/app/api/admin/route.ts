@@ -33,16 +33,25 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { username, password } = body;
+    const { username, password, role } = body;
 
-    // These are server-side ONLY — never exposed to client JS
+    // Operations Admin credentials (from environment variables)
     const adminUser = process.env.ADMIN_USERNAME || 'admin';
     const adminPass = process.env.ADMIN_PASSWORD || 'RedditOps2024!';
+    
+    // Client Admin credentials (from environment variables)
+    const clientUser = process.env.CLIENT_ADMIN_USERNAME || 'client';
+    const clientPass = process.env.CLIENT_ADMIN_PASSWORD || 'Client2024!';
 
-    if (username === adminUser && password === adminPass) {
-      // Generate a secure session token stored in-memory on the server
+    // Validate based on role
+    if (role === 'operations' && username === adminUser && password === adminPass) {
       const token = generateAdminToken();
-      return NextResponse.json({ success: true, username, token });
+      return NextResponse.json({ success: true, username, role: 'operations', token });
+    }
+    
+    if (role === 'client' && username === clientUser && password === clientPass) {
+      const token = generateAdminToken();
+      return NextResponse.json({ success: true, username, role: 'client', token });
     }
 
     return NextResponse.json(

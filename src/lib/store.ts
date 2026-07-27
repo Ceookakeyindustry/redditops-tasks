@@ -1,7 +1,7 @@
 // Store that communicates with Supabase via the /api/data route
 // All functions are async and work both client and server side
 
-import type { Task, Submission, DashboardStats, ActionLog, AccessLog } from './types';
+import type { Task, Submission, DashboardStats, ActionLog, AdminRole, ScreenshotProof, ScreenshotType } from './types';
 import { generateTaskId, generateRefId, generateAccessCode } from './types';
 
 const API_BASE = '/api/data';
@@ -51,16 +51,21 @@ export async function getAvailableTasks(): Promise<Task[]> {
   return tasks || [];
 }
 
-export async function createTask(data: Omit<Task, 'id' | 'taskId' | 'createdAt' | 'completedCount' | 'accessLogs' | 'status'>): Promise<Task> {
+export async function createTask(data: any): Promise<Task> {
   const { tasks } = await apiGet({ type: 'tasks' });
-  const counter = (tasks?.length || 0) + 1;
+  // If no custom taskId provided, generate one
+  if (!data.taskId) {
+    const counter = (tasks?.length || 0) + 1;
+    data.taskId = generateTaskId(counter);
+  }
   const newTask = {
     ...data,
-    taskId: generateTaskId(counter),
     createdAt: new Date().toISOString(),
     completedCount: 0,
     accessLogs: [],
     accessCodeDisabled: data.accessCodeDisabled ?? false,
+    isPublic: data.isPublic ?? false,
+    requiredScreenshots: data.requiredScreenshots ?? ['initial'],
     status: 'available',
   };
   const { task } = await apiPost({ action: 'createTask', data: newTask });
@@ -300,12 +305,23 @@ export async function getTaskSubmissions(taskId: string): Promise<Submission[]> 
   return submissions || [];
 }
 
-export async function createSubmission(data: Omit<Submission, 'refId' | 'submittedAt' | 'status' | 'isPaid'>): Promise<Submission> {
+export async function createSubmission(data: {
+  taskId: string;
+  discordUsername: string;
+  proofLink: string;
+  note?: string;
+  payment: number;
+  rejectionReason?: string;
+  adminNote?: string;
+  screenshots?: any[];
+}): Promise<Submission> {
   const submissionData = {
     ...data,
     refId: generateRefId(),
     status: 'pending',
     isPaid: false,
+    screenshots: data.screenshots || [],
+    editHistory: [],
     submittedAt: new Date().toISOString(),
   };
   const { submission } = await apiPost({ action: 'createSubmission', data: submissionData });
@@ -315,6 +331,90 @@ export async function createSubmission(data: Omit<Submission, 'refId' | 'submitt
 export async function updateSubmission(refId: string, data: Partial<Submission>): Promise<Submission | undefined> {
   const { submission } = await apiPost({ action: 'updateSubmission', refId, data });
   return submission;
+}
+
+// ==================== SUBMISSION EDITING ====================
+
+export async function editSubmissionProofLink(refId: string, newProofLink: string): Promise<Submission | undefined> {
+  const submission = await getSubmission(refId);
+  if (!submission || submission.status !== 'pending') return undefined;
+  
+  const editEntry = {
+    field: 'proofLink',
+    oldValue: submission.proofLink,
+    newValue: newProofLink,
+    editedAt: new Date().toISOString(),
+  };
+  
+  const editHistory = [...(submission.editHistory || []), editEntry];
+  
+  const updated = await updateSubmission(refId, {
+    proofLink: newProofLink,
+    editHistory,
+  });
+  return updated;
+}
+
+export async function editSubmissionNote(refId: string, newNote: string): Promise<Submission | undefined> {
+  const submission = await getSubmission(refId);
+  if (!submission || submission.status !== 'pending') return undefined;
+  
+  const editEntry = {
+    field: 'note',
+    oldValue: submission.note,
+    newValue: newNote,
+    editedAt: new Date().toISOString(),
+  };
+  
+  const editHistory = [...(submission.editHistory || []), editEntry];
+  
+  const updated = await updateSubmission(refId, {
+    note: newNote,
+    editHistory,
+  });
+  return updated;
+}
+
+// ==================== SCREENSHOT MANAGEMENT ====================
+
+export async function uploadScreenshot(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  const res = await fetch('/api/upload', {
+    method: 'POST',
+    body: formData,
+  });
+  
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Upload failed' }));
+    throw new Error(err.error || `HTTP ${res.status}`);
+  }
+  
+  const data = await res.json();
+  return data.url;
+}
+
+export async function addScreenshotToSubmission(refId: string, screenshot: ScreenshotProof): Promise<Submission | undefined> {
+  const submission = await getSubmission(refId);
+  if (!submission || submission.status === 'approved') return undefined;
+  
+  const screenshots = [...(submission.screenshots || [])];
+  
+  // Replace existing screenshot of same type, or add new
+  const existingIdx = screenshots.findIndex(s => s.type === screenshot.type);
+  if (existingIdx >= 0) {
+    screenshots[existingIdx] = screenshot;
+  } else {
+    screenshots.push(screenshot);
+  }
+  
+  const updated = await updateSubmission(refId, { screenshots });
+  return updated;
+}
+
+export async function getScreenshotUrl(bucketPath: string): Promise<string> {
+  return bucketPath; // The URL is returned directly from the upload
 }
 
 // ==================== DASHBOARD STATS ====================
@@ -358,27 +458,27 @@ export function getAdminTokenForApi(): string {
   return getAdminToken();
 }
 
-export async function adminLogin(username: string, password: string): Promise<boolean> {
+export async function adminLogin(username: string, password: string, role: AdminRole): Promise<{ success: boolean; role?: AdminRole }> {
   try {
     const res = await fetch('/api/admin', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ username, password, role }),
     });
     const data = await res.json();
     if (data.success && data.token) {
       if (typeof window !== 'undefined') {
         try {
-          localStorage.setItem('rot_admin_auth', JSON.stringify({ isAuthenticated: true, loginTime: Date.now() }));
+          localStorage.setItem('rot_admin_auth', JSON.stringify({ isAuthenticated: true, role: data.role, loginTime: Date.now() }));
           localStorage.setItem('rot_admin_token', JSON.stringify({ token: data.token }));
         } catch {}
       }
       adminTokenCache = data.token;
-      return true;
+      return { success: true, role: data.role };
     }
-    return false;
+    return { success: false };
   } catch {
-    return false;
+    return { success: false };
   }
 }
 
@@ -405,4 +505,22 @@ export function isAdminAuthenticated(): boolean {
   } catch {
     return false;
   }
+}
+
+export function getAdminRole(): AdminRole | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const auth = JSON.parse(localStorage.getItem('rot_admin_auth') || 'null');
+    return auth?.role || null;
+  } catch {
+    return null;
+  }
+}
+
+export function isOperationsAdmin(): boolean {
+  return getAdminRole() === 'operations';
+}
+
+export function isClientAdmin(): boolean {
+  return getAdminRole() === 'client';
 }
