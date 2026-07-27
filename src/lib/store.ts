@@ -1,7 +1,7 @@
 // Store that communicates with Supabase via the /api/data route
 // All functions are async and work both client and server side
 
-import type { Task, Submission, DashboardStats, ActionLog, AdminRole, ScreenshotProof, ScreenshotType } from './types';
+import type { Task, Submission, DashboardStats, ActionLog, AdminRole, ScreenshotProof } from './types';
 import { generateTaskId, generateRefId, generateAccessCode } from './types';
 
 const API_BASE = '/api/data';
@@ -313,7 +313,7 @@ export async function createSubmission(data: {
   payment: number;
   rejectionReason?: string;
   adminNote?: string;
-  screenshots?: any[];
+  screenshots?: ScreenshotProof[];
 }): Promise<Submission> {
   const submissionData = {
     ...data,

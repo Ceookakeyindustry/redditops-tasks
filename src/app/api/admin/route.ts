@@ -35,13 +35,13 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { username, password, role } = body;
 
-    // Operations Admin credentials (from environment variables)
-    const adminUser = process.env.ADMIN_USERNAME || 'admin';
-    const adminPass = process.env.ADMIN_PASSWORD || 'RedditOps2024!';
+    // Operations Admin credentials (from environment variables - no fallbacks for security)
+    const adminUser = process.env.ADMIN_USERNAME;
+    const adminPass = process.env.ADMIN_PASSWORD;
     
-    // Client Admin credentials (from environment variables)
-    const clientUser = process.env.CLIENT_ADMIN_USERNAME || 'client';
-    const clientPass = process.env.CLIENT_ADMIN_PASSWORD || 'Client2024!';
+    // Client Admin credentials (from environment variables - no fallbacks for security)
+    const clientUser = process.env.CLIENT_ADMIN_USERNAME;
+    const clientPass = process.env.CLIENT_ADMIN_PASSWORD;
 
     // Validate based on role
     if (role === 'operations' && username === adminUser && password === adminPass) {
