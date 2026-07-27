@@ -37,19 +37,25 @@ export default function TaskPage() {
   const [timeRemaining, setTimeRemaining] = useState<string>('');
 
   useEffect(() => {
+    let cancelled = false;
     (async () => {
-      const { getTasks, checkAndExpireTasks } = await import('@/lib/store');
-      // Auto-expire any overdue tasks
-      await checkAndExpireTasks();
-      const allTasks = await getTasks();
-      const found = allTasks.find((t: Task) => t.taskId === taskId);
-      setTask(found || null);
-      // Public tasks bypass the lock screen
-      if (found?.isPublic) {
-        setUnlocked(true);
+      try {
+        const { getTasks, checkAndExpireTasks } = await import('@/lib/store');
+        await checkAndExpireTasks();
+        const allTasks = await getTasks();
+        if (cancelled) return;
+        const found = allTasks.find((t: Task) => t.taskId === taskId);
+        setTask(found || null);
+        if (found?.isPublic) {
+          setUnlocked(true);
+        }
+      } catch (err) {
+        console.error('Failed to load task:', err);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      setLoading(false);
     })();
+    return () => { cancelled = true; };
   }, [taskId]);
 
   // Update time remaining countdown
