@@ -136,16 +136,18 @@ export async function GET(request: NextRequest) {
 
       // --- Dashboard Stats ---
       case 'dashboard': {
-        const [tasksData, submissionsData] = await Promise.all([
-          supabase.from('tasks').select('*'),
-          supabase.from('submissions').select('*'),
+        // Fetch tasks and submissions separately to handle errors independently
+        const [tasksResult, submissionsResult] = await Promise.all([
+          supabase.from('tasks').select('*').catch(() => ({ data: [], error: null })),
+          supabase.from('submissions').select('*').catch(() => ({ data: [], error: null })),
         ]);
 
-        if (tasksData.error) throw tasksData.error;
-        if (submissionsData.error) throw submissionsData.error;
+        const tasksData = tasksResult.error ? [] : (tasksResult.data || []);
+        const submissionsData = submissionsResult.error ? [] : (submissionsResult.data || []);
 
-        const tasks = (tasksData.data || []).map(formatTask);
-        const submissions = (submissionsData.data || []).map(formatSubmission);
+        const tasks = tasksData.map(formatTask).filter(Boolean);
+        const submissions = submissionsData.map(formatSubmission).filter(Boolean);
+        
         const inProgress = ['submitted', 'in_review', '24hr_pending', '24hr_done', '48hr_pending', '48hr_done', 'processing'];
         const paidSubs = submissions.filter((s: any) => s.status === 'paid');
 
@@ -157,7 +159,7 @@ export async function GET(request: NextRequest) {
           inProgressSubmissions: submissions.filter((s: any) => inProgress.includes(s.status)).length,
           paidSubmissions: paidSubs.length,
           rejectedSubmissions: submissions.filter((s: any) => s.status === 'rejected').length,
-          totalPayout: paidSubs.reduce((sum: number, s: any) => sum + s.payment, 0),
+          totalPayout: paidSubs.reduce((sum: number, s: any) => sum + (s.payment || 0), 0),
         };
 
         return NextResponse.json({ stats });
