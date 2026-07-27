@@ -16,6 +16,7 @@ import {
   DollarSign,
   ExternalLink,
   Trash2,
+  RefreshCw,
 } from 'lucide-react';
 import type { Task } from '@/lib/types';
 import { formatPayment, formatDate } from '@/lib/types';
@@ -30,17 +31,27 @@ export default function AdminTasksPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
-    (async () => {
-      const { isAdminAuthenticated, getTasks } = await import('@/lib/store');
-      if (!isAdminAuthenticated()) {
-        router.push('/admin/login');
-        return;
-      }
-      setAuthenticated(true);
-      const allTasks = await getTasks();
-      setTasks(allTasks);
-      setLoading(false);
-    })();
+    let mounted = true;
+    let interval: NodeJS.Timeout;
+
+    const fetchData = async () => {
+      try {
+        const { isAdminAuthenticated, getTasks } = await import('@/lib/store');
+        if (!isAdminAuthenticated()) {
+          router.push('/admin/login');
+          return;
+        }
+        setAuthenticated(true);
+        const allTasks = await getTasks();
+        if (!mounted) return;
+        setTasks(allTasks);
+        setLoading(false);
+      } catch {}
+    };
+
+    fetchData();
+    interval = setInterval(fetchData, 30000); // Auto-refresh every 30s
+    return () => { mounted = false; clearInterval(interval); };
   }, [router]);
 
   const copyBoth = async (task: Task) => {
@@ -63,6 +74,7 @@ export default function AdminTasksPage() {
   };
 
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
 
   const handleDelete = async (taskId: string) => {
     setDeleteConfirmId(taskId);
@@ -86,6 +98,34 @@ export default function AdminTasksPage() {
     setTasks(prev =>
       prev.map(t => (t.taskId === taskId ? { ...t, isActive: !t.isActive } : t))
     );
+  };
+
+  const handleDuplicate = async (task: Task) => {
+    setDuplicatingId(task.taskId);
+    try {
+      const { createTask } = await import('@/lib/store');
+      await createTask({
+        title: `${task.title} (Copy)`,
+        type: task.type,
+        payment: task.payment,
+        requirements: task.requirements,
+        instructions: task.instructions,
+        maxCompletions: task.maxCompletions,
+        accessCodeDisabled: true,
+        isPublic: task.isPublic,
+        requiredScreenshots: task.requiredScreenshots,
+        redditPostUrl: task.redditPostUrl,
+        commentText: task.commentText,
+        targetSubreddits: task.targetSubreddits,
+        suggestedTitle: task.suggestedTitle,
+        suggestedBody: task.suggestedBody,
+      });
+      // Refresh the task list
+      const { getTasks } = await import('@/lib/store');
+      const allTasks = await getTasks();
+      setTasks(allTasks);
+    } catch {}
+    setDuplicatingId(null);
   };
 
   const filteredTasks = tasks
@@ -251,6 +291,20 @@ export default function AdminTasksPage() {
                         <Copy className="w-3.5 h-3.5" />
                       )}
                       {copiedId === task.taskId ? 'Copied!' : 'Copy Both'}
+                    </button>
+
+                    {/* Duplicate */}
+                    <button
+                      onClick={() => handleDuplicate(task)}
+                      disabled={duplicatingId === task.taskId}
+                      className="px-3 py-2 rounded-xl bg-gray-100 text-gray-500 border border-gray-200 hover:border-[#8B5CF6]/30 hover:text-gray-900 text-xs font-medium transition-all duration-200 inline-flex items-center gap-1.5"
+                    >
+                      {duplicatingId === task.taskId ? (
+                        <div className="w-3.5 h-3.5 rounded-full border-2 border-[#8B5CF6]/30 border-t-[#8B5CF6] animate-spin" />
+                      ) : (
+                        <Copy className="w-3.5 h-3.5" />
+                      )}
+                      Duplicate
                     </button>
 
                     {/* Active Toggle */}

@@ -33,21 +33,31 @@ export default function AdminDashboardPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
-    (async () => {
-      const { isAdminAuthenticated, getDashboardStats, getTasks } = await import('@/lib/store');
-      if (!isAdminAuthenticated()) {
-        router.push('/admin/login');
-        return;
-      }
-      setAuthenticated(true);
-      const statsData = await getDashboardStats();
-      setStats(statsData);
-      const tasksData = await getTasks();
-      setAllTasks(tasksData);
-      // Show 5 most recent tasks
-      setRecentTasks(tasksData.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 5));
-      setLoading(false);
-    })();
+    let mounted = true;
+    let interval: NodeJS.Timeout;
+
+    const fetchData = async () => {
+      try {
+        const { isAdminAuthenticated, getDashboardStats, getTasks } = await import('@/lib/store');
+        if (!isAdminAuthenticated()) {
+          router.push('/admin/login');
+          return;
+        }
+        setAuthenticated(true);
+        const statsData = await getDashboardStats();
+        if (!mounted) return;
+        setStats(statsData);
+        const tasksData = await getTasks();
+        if (!mounted) return;
+        setAllTasks(tasksData);
+        setRecentTasks(tasksData.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 5));
+        setLoading(false);
+      } catch {}
+    };
+
+    fetchData();
+    interval = setInterval(fetchData, 30000); // Auto-refresh every 30s
+    return () => { mounted = false; clearInterval(interval); };
   }, [router]);
 
   const handleLogout = async () => {

@@ -52,19 +52,30 @@ export default function AdminSubmissionsPage() {
   const [processingAction, setProcessingAction] = useState<string | null>(null);
 
   useEffect(() => {
-    (async () => {
-      const { isAdminAuthenticated, getSubmissions, getTasks } = await import('@/lib/store');
-      if (!isAdminAuthenticated()) {
-        router.push('/admin/login');
-        return;
-      }
-      setAuthenticated(true);
-      const subs = await getSubmissions();
-      setSubmissions(subs);
-      const allTasks = await getTasks();
-      setTasks(allTasks);
-      setLoading(false);
-    })();
+    let mounted = true;
+    let interval: NodeJS.Timeout;
+
+    const fetchData = async () => {
+      try {
+        const { isAdminAuthenticated, getSubmissions, getTasks } = await import('@/lib/store');
+        if (!isAdminAuthenticated()) {
+          router.push('/admin/login');
+          return;
+        }
+        setAuthenticated(true);
+        const subs = await getSubmissions();
+        if (!mounted) return;
+        setSubmissions(subs);
+        const allTasks = await getTasks();
+        if (!mounted) return;
+        setTasks(allTasks);
+        setLoading(false);
+      } catch {}
+    };
+
+    fetchData();
+    interval = setInterval(fetchData, 30000); // Auto-refresh every 30s
+    return () => { mounted = false; clearInterval(interval); };
   }, [router]);
 
   const getTaskTitle = (taskId: string) => {

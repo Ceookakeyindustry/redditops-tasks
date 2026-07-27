@@ -42,6 +42,8 @@ export default function SubmissionPortalPage() {
 
   useEffect(() => {
     loadSubmission();
+    const interval = setInterval(loadSubmission, 30000); // Auto-refresh every 30s
+    return () => clearInterval(interval);
   }, [loadSubmission]);
 
   const getMissingScreenshotTypes = (): ScreenshotType[] => {
