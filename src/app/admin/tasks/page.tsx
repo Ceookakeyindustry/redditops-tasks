@@ -32,7 +32,7 @@ export default function AdminTasksPage() {
 
   useEffect(() => {
     let mounted = true;
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval>;
 
     const fetchData = async () => {
       try {

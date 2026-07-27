@@ -53,7 +53,7 @@ export default function AdminSubmissionsPage() {
 
   useEffect(() => {
     let mounted = true;
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval>;
 
     const fetchData = async () => {
       try {

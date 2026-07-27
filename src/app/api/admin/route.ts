@@ -35,15 +35,22 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { username, password, role } = body;
 
-    // Operations Admin credentials (env vars override these fallbacks)
-    const adminUser = process.env.ADMIN_USERNAME || 'tranquil';
-    const adminPass = process.env.ADMIN_PASSWORD || '0lkhfgote';
+    // Admin credentials - MUST be set via environment variables
+    const adminUser = process.env.ADMIN_USERNAME;
+    const adminPass = process.env.ADMIN_PASSWORD;
     
-    // Client Admin credentials (env vars override these fallbacks)
-    const clientUser = process.env.CLIENT_ADMIN_USERNAME || 'discordtranquil_mango';
-    const clientPass = process.env.CLIENT_ADMIN_PASSWORD || 'Client2024!';
+    // Client Admin credentials - MUST be set via environment variables
+    const clientUser = process.env.CLIENT_ADMIN_USERNAME;
+    const clientPass = process.env.CLIENT_ADMIN_PASSWORD;
 
     // Validate based on role
+    if (!adminUser || !adminPass || !clientUser || !clientPass) {
+      return NextResponse.json(
+        { success: false, error: 'Admin credentials not configured. Set environment variables first.' },
+        { status: 500 }
+      );
+    }
+
     if (role === 'operations' && username === adminUser && password === adminPass) {
       const token = generateAdminToken();
       return NextResponse.json({ success: true, username, role: 'operations', token });

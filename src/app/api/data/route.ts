@@ -53,7 +53,6 @@ function formatSubmission(row: any) {
     rejectionReason: row.rejection_reason,
     adminNote: row.admin_note,
     submittedAt: row.submitted_at,
-    isPaid: row.is_paid || false,
     paidAt: row.paid_at,
     screenshots: row.screenshots || [],
     editHistory: row.edit_history || [],

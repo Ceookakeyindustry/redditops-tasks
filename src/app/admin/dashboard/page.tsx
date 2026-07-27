@@ -34,7 +34,7 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     let mounted = true;
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval>;
 
     const fetchData = async () => {
       try {
