@@ -154,8 +154,9 @@ export default function ClientReviewDashboard() {
     }
   };
 
-  // Today's submissions (only flagged for client review)
-  const clientSubmissions = submissions.filter(s => s.showToClient);
+  // Client sees all submissions that are active (not just flagged ones)
+  // Stats use the full list so paid/rejected counts are accurate
+  const clientSubmissions = submissions;
   const todaySubmissions = clientSubmissions.filter(s => {
     const today = new Date();
     const subDate = new Date(s.submittedAt);
@@ -168,9 +169,7 @@ export default function ClientReviewDashboard() {
 
   const filteredSubmissions = submissions
     .filter(s => {
-      // Only show submissions that are flagged for client review
-      if (!s.showToClient) return false;
-      if (statusFilter === 'all' || statusFilter === 'flagged') return true;
+      if (statusFilter === 'all') return true;
       return s.status === statusFilter;
     })
     .filter(s => {
