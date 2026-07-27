@@ -211,6 +211,28 @@ export async function GET(request: NextRequest) {
   }
 }
 
+const supabaseUrlForMigration = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const projectRef = supabaseUrlForMigration.replace('https://', '').replace('.supabase.co', '');
+const sqlEditorLink = projectRef ? `https://supabase.com/dashboard/project/${projectRef}/sql/new` : 'https://supabase.com/dashboard';
+
+function isColumnError(error: any): boolean {
+  const msg = error?.message || '';
+  return msg.includes('column') && (msg.includes('does not exist') || msg.includes('not found'));
+}
+
+function migrationErrorResponse() {
+  return {
+    error: 'Database needs a quick migration. Click the link and run the SQL.',
+    sqlEditorLink,
+    sql: `ALTER TABLE tasks ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT false;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS required_screenshots TEXT[] DEFAULT ARRAY['initial'];
+ALTER TABLE submissions ADD COLUMN IF NOT EXISTS screenshots JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE submissions ADD COLUMN IF NOT EXISTS edit_history JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE submissions ADD COLUMN IF NOT EXISTS show_to_client BOOLEAN DEFAULT false;
+NOTIFY pgrst, 'reload schema';`,
+  };
+}
+
 // ----- POST Handler -----
 export async function POST(request: NextRequest) {
   const body = await request.json();
@@ -240,7 +262,12 @@ export async function POST(request: NextRequest) {
           .select()
           .single();
 
-        if (error) throw error;
+        if (error) {
+          if (isColumnError(error)) {
+            return NextResponse.json(migrationErrorResponse(), { status: 400 });
+          }
+          throw error;
+        }
         return NextResponse.json({ task: formatTask(result) });
       }
 
@@ -262,7 +289,12 @@ export async function POST(request: NextRequest) {
           .select()
           .single();
 
-        if (error) throw error;
+        if (error) {
+          if (isColumnError(error)) {
+            return NextResponse.json(migrationErrorResponse(), { status: 400 });
+          }
+          throw error;
+        }
         return NextResponse.json({ task: formatTask(result) });
       }
 
@@ -314,7 +346,12 @@ export async function POST(request: NextRequest) {
           .select()
           .single();
 
-        if (error) throw error;
+        if (error) {
+          if (isColumnError(error)) {
+            return NextResponse.json(migrationErrorResponse(), { status: 400 });
+          }
+          throw error;
+        }
         return NextResponse.json({ submission: formatSubmission(result) });
       }
 
@@ -336,7 +373,12 @@ export async function POST(request: NextRequest) {
           .select()
           .single();
 
-        if (error) throw error;
+        if (error) {
+          if (isColumnError(error)) {
+            return NextResponse.json(migrationErrorResponse(), { status: 400 });
+          }
+          throw error;
+        }
         return NextResponse.json({ submission: formatSubmission(result) });
       }
 
