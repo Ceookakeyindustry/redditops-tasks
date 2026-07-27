@@ -3,11 +3,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import type { Submission, ScreenshotType, ScreenshotProof } from '@/lib/types';
+import type { Submission, ScreenshotType, ScreenshotProof, ChatMessage } from '@/lib/types';
 import { SCREENSHOT_TYPE_LABELS, ALL_SCREENSHOT_TYPES } from '@/lib/types';
 import {
   Clock, CheckCircle, XCircle, AlertTriangle, ArrowLeft, DollarSign,
   Upload, Image, Edit3, ExternalLink, Save, X, Eye,
+  MessageSquare, Send,
 } from 'lucide-react';
 
 export default function SubmissionPortalPage() {
@@ -33,6 +34,11 @@ export default function SubmissionPortalPage() {
   // Preview
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
+  // Chat
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatMessage, setChatMessage] = useState('');
+  const [sendingChat, setSendingChat] = useState(false);
+
   const loadSubmission = useCallback(async () => {
     const { getSubmission } = await import('@/lib/store');
     const found = await getSubmission(refId);
@@ -43,6 +49,40 @@ export default function SubmissionPortalPage() {
   useEffect(() => {
     loadSubmission();
   }, [loadSubmission]);
+
+  // Chat polling
+  useEffect(() => {
+    if (!submission) return;
+    const loadChat = async () => {
+      const { getChatMessages } = await import('@/lib/store');
+      const messages = await getChatMessages(refId);
+      setChatMessages(messages);
+    };
+    loadChat();
+    const interval = setInterval(loadChat, 5000);
+    return () => clearInterval(interval);
+  }, [refId, submission]);
+
+  const handleSendChat = async () => {
+    if (!chatMessage.trim() || !submission) return;
+    setSendingChat(true);
+    try {
+      const { sendChatMessage } = await import('@/lib/store');
+      const msg = await sendChatMessage({
+        refId,
+        senderName: submission.discordUsername,
+        senderRole: 'worker',
+        message: chatMessage.trim(),
+        submissionRefId: refId,
+      });
+      setChatMessages(prev => [...prev, msg]);
+      setChatMessage('');
+    } catch {
+      // silent
+    } finally {
+      setSendingChat(false);
+    }
+  };
 
   const getMissingScreenshotTypes = (): ScreenshotType[] => {
     if (!submission) return [];
@@ -454,6 +494,65 @@ export default function SubmissionPortalPage() {
             {!isEditable && existingScreenshots.length === 0 && (
               <p className="text-gray-400 text-sm">No screenshots were uploaded with this submission.</p>
             )}
+          </div>
+
+          {/* Live Chat */}
+          <div className="card p-6 sm:p-8 animate-fade-in">
+            <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+              <MessageSquare className="w-5 h-5 text-[#8B5CF6]" />
+              Live Chat with Admin
+            </h2>
+
+            {/* Messages */}
+            <div className="space-y-3 mb-4 max-h-64 overflow-y-auto">
+              {chatMessages.length === 0 ? (
+                <p className="text-gray-400 text-sm text-center py-8">No messages yet. Start a conversation with the admin.</p>
+              ) : (
+                chatMessages.map((msg, idx) => (
+                  <div
+                    key={msg.id || idx}
+                    className={`flex ${msg.senderRole === 'worker' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`max-w-[80%] p-3 rounded-2xl text-sm ${
+                        msg.senderRole === 'worker'
+                          ? 'bg-[#8B5CF6] text-white rounded-br-md'
+                          : 'bg-gray-100 text-gray-900 rounded-bl-md'
+                      }`}
+                    >
+                      <p className={`text-xs font-medium mb-1 ${msg.senderRole === 'worker' ? 'text-white/70' : 'text-gray-500'}`}>
+                        {msg.senderRole === 'admin' ? 'Admin' : 'You'} · {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                      <p>{msg.message}</p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Input */}
+            <div className="flex gap-3">
+              <input
+                type="text"
+                value={chatMessage}
+                onChange={e => setChatMessage(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendChat(); } }}
+                placeholder="Type a message..."
+                className="input-field flex-1"
+                disabled={sendingChat}
+              />
+              <button
+                onClick={handleSendChat}
+                disabled={sendingChat || !chatMessage.trim()}
+                className="btn-primary px-5"
+              >
+                {sendingChat ? (
+                  <div className="w-5 h-5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4" />
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </div>

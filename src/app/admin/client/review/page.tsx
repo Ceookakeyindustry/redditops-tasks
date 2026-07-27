@@ -27,7 +27,7 @@ export default function ClientReviewDashboard() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'flagged'>('all');
 
   // Selected submission for detail view
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
@@ -140,8 +140,9 @@ export default function ClientReviewDashboard() {
     }
   };
 
-  // Today's submissions
-  const todaySubmissions = submissions.filter(s => {
+  // Today's submissions (only flagged for client review)
+  const clientSubmissions = submissions.filter(s => s.showToClient);
+  const todaySubmissions = clientSubmissions.filter(s => {
     const today = new Date();
     const subDate = new Date(s.submittedAt);
     return subDate.toDateString() === today.toDateString();
@@ -153,7 +154,9 @@ export default function ClientReviewDashboard() {
 
   const filteredSubmissions = submissions
     .filter(s => {
-      if (statusFilter === 'all') return true;
+      // Only show submissions that are flagged for client review
+      if (!s.showToClient) return false;
+      if (statusFilter === 'all' || statusFilter === 'flagged') return true;
       return s.status === statusFilter;
     })
     .filter(s => {
@@ -215,7 +218,7 @@ export default function ClientReviewDashboard() {
               </div>
             </div>
             <p className="text-2xl font-bold text-gray-900 mb-1">
-              {submissions.filter(s => s.status === 'pending').length}
+              {clientSubmissions.filter(s => s.status === 'pending').length}
             </p>
             <p className="text-xs text-gray-400">Pending Review</p>
           </div>
@@ -226,7 +229,7 @@ export default function ClientReviewDashboard() {
               </div>
             </div>
             <p className="text-2xl font-bold text-gray-900 mb-1">
-              {submissions.filter(s => s.status === 'approved').length}
+              {clientSubmissions.filter(s => s.status === 'approved').length}
             </p>
             <p className="text-xs text-gray-400">Total Approved</p>
           </div>
@@ -246,7 +249,7 @@ export default function ClientReviewDashboard() {
               />
             </div>
             <div className="flex gap-2">
-              {(['all', 'pending', 'approved', 'rejected'] as const).map(status => (
+              {(['all', 'pending', 'approved', 'rejected', 'flagged'] as const).map(status => (
                 <button
                   key={status}
                   onClick={() => setStatusFilter(status)}

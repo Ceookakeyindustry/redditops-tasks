@@ -1,7 +1,7 @@
 // Store that communicates with Supabase via the /api/data route
 // All functions are async and work both client and server side
 
-import type { Task, Submission, DashboardStats, ActionLog, AdminRole, ScreenshotProof } from './types';
+import type { Task, Submission, DashboardStats, ActionLog, AdminRole, ScreenshotProof, ChatMessage } from './types';
 import { generateTaskId, generateRefId, generateAccessCode } from './types';
 
 const API_BASE = '/api/data';
@@ -415,6 +415,40 @@ export async function addScreenshotToSubmission(refId: string, screenshot: Scree
 
 export async function getScreenshotUrl(bucketPath: string): Promise<string> {
   return bucketPath; // The URL is returned directly from the upload
+}
+
+// ==================== CHAT ====================
+
+export async function getChatMessages(refId?: string): Promise<ChatMessage[]> {
+  try {
+    const params = refId ? `?refId=${encodeURIComponent(refId)}` : '';
+    const res = await fetch(`/api/chat${params}`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.messages || [];
+  } catch {
+    return [];
+  }
+}
+
+export async function sendChatMessage(data: {
+  refId?: string;
+  senderName: string;
+  senderRole: 'admin' | 'worker';
+  message: string;
+  submissionRefId?: string;
+}): Promise<ChatMessage> {
+  const res = await fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'sendChat', ...data }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Failed' }));
+    throw new Error(err.error || 'Chat send failed');
+  }
+  const result = await res.json();
+  return result.message;
 }
 
 // ==================== DASHBOARD STATS ====================

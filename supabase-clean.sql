@@ -8,6 +8,7 @@ ALTER TABLE tasks ADD COLUMN IF NOT EXISTS required_screenshots TEXT[] DEFAULT A
 
 ALTER TABLE submissions ADD COLUMN IF NOT EXISTS screenshots JSONB DEFAULT '[]'::jsonb;
 ALTER TABLE submissions ADD COLUMN IF NOT EXISTS edit_history JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE submissions ADD COLUMN IF NOT EXISTS show_to_client BOOLEAN DEFAULT false;
 
 -- ==========================================
 -- STEP 2: CREATE ADMINS TABLE
@@ -63,7 +64,8 @@ CREATE TABLE IF NOT EXISTS submissions (
   submitted_at TIMESTAMPTZ DEFAULT NOW(),
   is_paid BOOLEAN DEFAULT false, paid_at TIMESTAMPTZ,
   screenshots JSONB DEFAULT '[]'::jsonb,
-  edit_history JSONB DEFAULT '[]'::jsonb
+  edit_history JSONB DEFAULT '[]'::jsonb,
+  show_to_client BOOLEAN DEFAULT false
 );
 
 CREATE TABLE IF NOT EXISTS action_logs (
@@ -71,6 +73,16 @@ CREATE TABLE IF NOT EXISTS action_logs (
   task_id TEXT NOT NULL REFERENCES tasks(task_id) ON DELETE CASCADE,
   action TEXT NOT NULL, performed_by TEXT NOT NULL,
   details JSONB DEFAULT '{}'::jsonb, created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS chat_messages (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  ref_id TEXT,
+  sender_name TEXT NOT NULL,
+  sender_role TEXT NOT NULL CHECK (sender_role IN ('admin', 'worker')),
+  message TEXT NOT NULL,
+  submission_ref_id TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS payment_methods (
@@ -99,6 +111,8 @@ DROP POLICY IF EXISTS "Admin can insert action logs" ON action_logs;
 DROP POLICY IF EXISTS "Admin can view admins" ON admins;
 DROP POLICY IF EXISTS "Admin can insert admins" ON admins;
 DROP POLICY IF EXISTS "Admin can update admins" ON admins;
+DROP POLICY IF EXISTS "Anyone can view chat messages" ON chat_messages;
+DROP POLICY IF EXISTS "Anyone can insert chat messages" ON chat_messages;
 
 -- ==========================================
 -- STEP 5: CREATE INDEXES
@@ -134,3 +148,7 @@ CREATE POLICY "Admin can insert action logs" ON action_logs FOR INSERT WITH CHEC
 CREATE POLICY "Anyone can view admins" ON admins FOR SELECT USING (true);
 CREATE POLICY "Admin can insert admins" ON admins FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 CREATE POLICY "Admin can update admins" ON admins FOR UPDATE USING (auth.role() = 'authenticated');
+
+ALTER TABLE chat_messages ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Anyone can view chat messages" ON chat_messages FOR SELECT USING (true);
+CREATE POLICY "Anyone can insert chat messages" ON chat_messages FOR INSERT WITH CHECK (true);

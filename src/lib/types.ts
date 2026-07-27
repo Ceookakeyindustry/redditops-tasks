@@ -74,6 +74,7 @@ export interface AccessLog {
 }
 
 export interface Submission {
+  id?: string;
   refId: string;
   taskId: string;
   discordUsername: string;
@@ -88,6 +89,17 @@ export interface Submission {
   paidAt?: string;
   screenshots: ScreenshotProof[];
   editHistory: EditLog[];
+  showToClient: boolean;
+}
+
+export interface ChatMessage {
+  id: string;
+  refId?: string;
+  senderName: string;
+  senderRole: 'admin' | 'worker';
+  message: string;
+  submissionRefId?: string;
+  createdAt: string;
 }
 
 export interface ActionLog {

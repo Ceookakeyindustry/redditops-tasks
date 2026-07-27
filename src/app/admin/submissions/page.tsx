@@ -14,6 +14,7 @@ import {
   DollarSign,
   Image,
   Eye,
+  Send,
 } from 'lucide-react';
 import type { Submission, Task } from '@/lib/types';
 import { formatDate, PRESET_REJECTION_REASONS, SCREENSHOT_TYPE_LABELS } from '@/lib/types';
@@ -70,7 +71,7 @@ export default function AdminSubmissionsPage() {
     setProcessingAction(submission.refId);
     try {
       const { updateSubmission } = await import('@/lib/store');
-      await      await updateSubmission(submission.refId, {
+      await updateSubmission(submission.refId, {
         status: 'approved',
         rejectionReason: undefined,
         adminNote: undefined,
@@ -555,6 +556,37 @@ export default function AdminSubmissionsPage() {
                     )}
                   </div>
                 </div>
+
+                {/* Client Review Toggle */}
+                {submission.status === 'pending' && (
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <label className="flex items-center gap-3 cursor-pointer group">
+                      <input
+                        type="checkbox"
+                        checked={submission.showToClient || false}
+                        onChange={async () => {
+                          const { updateSubmission } = await import('@/lib/store');
+                          const newVal = !submission.showToClient;
+                          await updateSubmission(submission.refId, { showToClient: newVal });
+                          setSubmissions(prev =>
+                            prev.map(s =>
+                              s.refId === submission.refId ? { ...s, showToClient: newVal } : s
+                            )
+                          );
+                        }}
+                        className="rounded border-gray-300 text-[#8B5CF6] focus:ring-[#8B5CF6]"
+                      />
+                      <div>
+                        <span className="text-sm font-medium text-gray-900 group-hover:text-[#8B5CF6] transition-colors">
+                          Show to Client Admin
+                        </span>
+                        <p className="text-xs text-gray-400">
+                          Client Admin will see this submission in their review dashboard
+                        </p>
+                      </div>
+                    </label>
+                  </div>
+                )}
 
                 {/* Show rejection details if rejected */}
                 {submission.status === 'rejected' && submission.rejectionReason && (

@@ -179,6 +179,10 @@ export default function AdminDashboardPage() {
             <p className="text-gray-500 mt-1">Manage your tasks and submissions.</p>
           </div>
           <div className="flex items-center gap-3">
+            <Link href="/admin/chat" className="btn-secondary">
+              <MessageCircle className="w-4 h-4" />
+              Chat
+            </Link>
             <Link href="/admin/client/review" className="btn-secondary">
               <Eye className="w-4 h-4" />
               Client View

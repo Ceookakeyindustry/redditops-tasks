@@ -60,7 +60,9 @@ CREATE TABLE IF NOT EXISTS submissions (
   -- Screenshots storage
   screenshots JSONB DEFAULT '[]'::jsonb,
   -- Edit history
-  edit_history JSONB DEFAULT '[]'::jsonb
+  edit_history JSONB DEFAULT '[]'::jsonb,
+  -- Client review flag
+  show_to_client BOOLEAN DEFAULT false
 );
 
 -- ==========================================
@@ -86,6 +88,22 @@ CREATE TABLE IF NOT EXISTS admins (
   display_name TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- ==========================================
+-- CHAT MESSAGES TABLE
+-- ==========================================
+CREATE TABLE IF NOT EXISTS chat_messages (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  ref_id TEXT,
+  sender_name TEXT NOT NULL,
+  sender_role TEXT NOT NULL CHECK (sender_role IN ('admin', 'worker')),
+  message TEXT NOT NULL,
+  submission_ref_id TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_chat_messages_created_at ON chat_messages(created_at);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_ref_id ON chat_messages(ref_id);
 
 -- ==========================================
 -- PAYMENT METHODS TABLE
