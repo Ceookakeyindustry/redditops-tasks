@@ -482,43 +482,7 @@ export default function TaskPage() {
               </>
             )}
 
-            {/* Task Status Info */}
-            {task.assignedAt && (
-              <div className="card p-6 animate-fade-in">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <Shield className="w-5 h-5 text-[#8B5CF6]" />
-                  Assignment Info
-                </h2>
-                <div className="space-y-2 text-sm text-gray-500">
-                  <p>
-                    <span className="font-medium">Assigned to:</span>{' '}
-                    <span className="text-gray-900">{task.assignedDiscordUsername}</span>
-                  </p>
-                  <p>
-                    <span className="font-medium">Assigned at:</span>{' '}
-                    <span className="text-gray-900">{new Date(task.assignedAt).toLocaleString()}</span>
-                  </p>
-                  {task.expiresAt && (
-                    <p>
-                      <span className="font-medium">Expires at:</span>{' '}
-                      <span className="text-gray-900">{new Date(task.expiresAt).toLocaleString()}</span>
-                      {' — '}
-                      {getTimeRemainingDisplay()}
-                    </p>
-                  )}
-                  <p>
-                    <span className="font-medium">Status:</span>{' '}
-                    <span className={`font-medium capitalize ${
-                      task.status === 'available' ? 'text-emerald-400' :
-                      task.status === 'assigned' ? 'text-blue-400' :
-                      task.status === 'submitted' ? 'text-[#F59E0B]' :
-                      task.status === 'approved' ? 'text-emerald-400' :
-                      'text-red-400'
-                    }`}>{task.status}</span>
-                  </p>
-                </div>
-              </div>
-            )}
+
           </div>
 
           {/* Sidebar */}
