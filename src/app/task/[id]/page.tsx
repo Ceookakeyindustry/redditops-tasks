@@ -44,6 +44,10 @@ export default function TaskPage() {
       const allTasks = await getTasks();
       const found = allTasks.find((t: Task) => t.taskId === taskId);
       setTask(found || null);
+      // Public tasks bypass the lock screen
+      if (found?.isPublic) {
+        setUnlocked(true);
+      }
       setLoading(false);
     })();
   }, [taskId]);
@@ -171,7 +175,7 @@ export default function TaskPage() {
         rejectionReason: undefined,
         adminNote: undefined,
         screenshots,
-      } as any);
+      });
 
       // Mark the task as submitted
       await markTaskSubmitted(task.taskId);
