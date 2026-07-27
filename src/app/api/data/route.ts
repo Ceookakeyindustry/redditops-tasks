@@ -145,13 +145,13 @@ export async function GET(request: NextRequest) {
           const taskQuery = supabase.from('tasks').select('*');
           const taskResult = await taskQuery;
           if (!taskResult.error && taskResult.data) tasksData = taskResult.data;
-        } catch { /* tasks query failed, use empty results */ }
+        } catch { console.warn('Dashboard tasks query failed'); }
 
         try {
           const subQuery = supabase.from('submissions').select('*');
           const subResult = await subQuery;
           if (!subResult.error && subResult.data) submissionsData = subResult.data;
-        } catch { /* submissions query failed, use empty results */ }
+        } catch { console.warn('Dashboard submissions query failed'); }
 
         const tasks = tasksData.map(formatTask).filter(Boolean);
         const submissions = submissionsData.map(formatSubmission).filter(Boolean);
