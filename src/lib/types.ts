@@ -119,6 +119,7 @@ export interface Submission {
   status: SubmissionStatus;
   rejectionReason?: string;
   adminNote?: string;
+  customLabel?: string;
   submittedAt: string;
   paidAt?: string;
   screenshots: ScreenshotProof[];

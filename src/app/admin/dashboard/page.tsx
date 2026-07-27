@@ -18,8 +18,11 @@ import {
   Trash2,
   MessageCircle,
   Eye,
+  Search,
+  ExternalLink,
+  Shield,
 } from 'lucide-react';
-import type { DashboardStats, Task } from '@/lib/types';
+import type { DashboardStats, Task, Submission } from '@/lib/types';
 import { formatPayment, formatDate } from '@/lib/types';
 import AnimatedCounter from '@/components/AnimatedCounter';
 
@@ -31,6 +34,31 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [authenticated, setAuthenticated] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // Reference ID Lookup
+  const [refIdLookup, setRefIdLookup] = useState('');
+  const [lookupResult, setLookupResult] = useState<Submission | null>(null);
+  const [lookupLoading, setLookupLoading] = useState(false);
+  const [lookupError, setLookupError] = useState('');
+
+  const handleRefIdLookup = async () => {
+    if (!refIdLookup.trim()) return;
+    setLookupLoading(true);
+    setLookupError('');
+    setLookupResult(null);
+    try {
+      const { getSubmission } = await import('@/lib/store');
+      const result = await getSubmission(refIdLookup.trim());
+      if (result) {
+        setLookupResult(result);
+      } else {
+        setLookupError(`No submission found with Reference ID: ${refIdLookup.trim()}`);
+      }
+    } catch {
+      setLookupError('Failed to look up Reference ID. Please try again.');
+    }
+    setLookupLoading(false);
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -211,6 +239,130 @@ export default function AdminDashboardPage() {
               <p className="text-xs text-gray-400">{card.label}</p>
             </div>
           ))}
+        </div>
+
+        {/* Admin Control Center - Reference ID Lookup */}
+        <div className="card p-6">
+          <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-4">
+            <Shield className="w-5 h-5 text-[#8B5CF6]" />
+            Admin Control Center
+          </h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Reference ID Lookup */}
+            <div>
+              <p className="text-sm font-medium text-gray-500 mb-2">Reference ID Lookup</p>
+              <p className="text-xs text-gray-400 mb-3">Enter any Reference ID to view submission details</p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="e.g. ROT-823741"
+                  value={refIdLookup}
+                  onChange={e => { setRefIdLookup(e.target.value); setLookupError(''); setLookupResult(null); }}
+                  onKeyDown={e => e.key === 'Enter' && handleRefIdLookup()}
+                  className="input-field font-mono flex-1"
+                />
+                <button
+                  onClick={handleRefIdLookup}
+                  disabled={lookupLoading || !refIdLookup.trim()}
+                  className="btn-primary"
+                >
+                  {lookupLoading ? (
+                    <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                  ) : (
+                    <Search className="w-4 h-4" />
+                  )}
+                  Lookup
+                </button>
+              </div>
+
+              {/* Lookup Error */}
+              {lookupError && (
+                <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm mt-3">
+                  <XCircle className="w-4 h-4 flex-shrink-0" />
+                  {lookupError}
+                </div>
+              )}
+
+              {/* Lookup Result */}
+              {lookupResult && (
+                <div className="mt-3 p-4 rounded-xl bg-gray-50 border border-gray-200 animate-fade-in">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-mono text-sm text-[#8B5CF6] font-medium">{lookupResult.refId}</span>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                      lookupResult.status === 'paid' ? 'bg-emerald-500/10 text-emerald-400' :
+                      lookupResult.status === 'rejected' ? 'bg-red-500/10 text-red-400' :
+                      'bg-[#F59E0B]/10 text-[#F59E0B]'
+                    }`}>
+                      {lookupResult.status.replace('_', ' ')}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-900 mb-1">Task: {lookupResult.taskId}</p>
+                  <p className="text-sm text-gray-500">Discord: {lookupResult.discordUsername}</p>
+                  <p className="text-xs text-gray-400 mt-1">{new Date(lookupResult.submittedAt).toLocaleDateString()}</p>
+                  {lookupResult.screenshots && lookupResult.screenshots.length > 0 && (
+                    <p className="text-xs text-gray-400 mt-1">{lookupResult.screenshots.length} screenshot(s) uploaded</p>
+                  )}
+                  <div className="flex gap-2 mt-3">
+                    <Link
+                      href={`/admin/submissions?ref=${lookupResult.refId}`}
+                      className="text-xs text-[#8B5CF6] hover:text-[#A78BFA] font-medium"
+                    >
+                      View in Submissions →
+                    </Link>
+                    <Link
+                      href={`/status/${lookupResult.refId}`}
+                      className="text-xs text-[#8B5CF6] hover:text-[#A78BFA] font-medium"
+                    >
+                      <ExternalLink className="w-3 h-3 inline" /> Open Portal
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Quick Tools */}
+            <div>
+              <p className="text-sm font-medium text-gray-500 mb-2">Quick Actions</p>
+              <p className="text-xs text-gray-400 mb-3">Common admin operations</p>
+              <div className="space-y-2">
+                <Link
+                  href="/admin/tasks/new"
+                  className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-200 hover:border-[#8B5CF6]/30 transition-all group"
+                >
+                  <PlusCircle className="w-4 h-4 text-[#8B5CF6]" />
+                  <span className="text-sm text-gray-900 group-hover:text-[#8B5CF6]">Create New Task</span>
+                </Link>
+                <Link
+                  href="/admin/tasks"
+                  className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-200 hover:border-[#8B5CF6]/30 transition-all group"
+                >
+                  <FileText className="w-4 h-4 text-[#8B5CF6]" />
+                  <span className="text-sm text-gray-900 group-hover:text-[#8B5CF6]">Manage All Tasks</span>
+                </Link>
+                <Link
+                  href="/admin/submissions"
+                  className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-200 hover:border-[#8B5CF6]/30 transition-all group"
+                >
+                  <ClipboardList className="w-4 h-4 text-[#F59E0B]" />
+                  <span className="text-sm text-gray-900 group-hover:text-[#8B5CF6]">Review Submissions</span>
+                </Link>
+                <Link
+                  href="/status"
+                  className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-200 hover:border-[#8B5CF6]/30 transition-all group"
+                >
+                  <ExternalLink className="w-4 h-4 text-emerald-400" />
+                  <span className="text-sm text-gray-900 group-hover:text-[#8B5CF6]">Worker Status Portal</span>
+                </Link>
+                <Link
+                  href="/admin/client/review"
+                  className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-200 hover:border-[#8B5CF6]/30 transition-all group"
+                >
+                  <Eye className="w-4 h-4 text-emerald-400" />
+                  <span className="text-sm text-gray-900 group-hover:text-[#8B5CF6]">Client Review Dashboard</span>
+                </Link>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Quick Actions */}
