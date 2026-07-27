@@ -35,13 +35,13 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { username, password, role } = body;
 
-    // Operations Admin credentials (from environment variables - no fallbacks for security)
-    const adminUser = process.env.ADMIN_USERNAME;
-    const adminPass = process.env.ADMIN_PASSWORD;
+    // Operations Admin credentials (env vars override these fallbacks)
+    const adminUser = process.env.ADMIN_USERNAME || 'tranquil';
+    const adminPass = process.env.ADMIN_PASSWORD || '0lkhfgote#A';
     
-    // Client Admin credentials (from environment variables - no fallbacks for security)
-    const clientUser = process.env.CLIENT_ADMIN_USERNAME;
-    const clientPass = process.env.CLIENT_ADMIN_PASSWORD;
+    // Client Admin credentials (env vars override these fallbacks)
+    const clientUser = process.env.CLIENT_ADMIN_USERNAME || 'discordtranquil_mango';
+    const clientPass = process.env.CLIENT_ADMIN_PASSWORD || 'Client2024!';
 
     // Validate based on role
     if (role === 'operations' && username === adminUser && password === adminPass) {
