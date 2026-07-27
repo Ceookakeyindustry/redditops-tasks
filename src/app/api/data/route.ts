@@ -137,13 +137,21 @@ export async function GET(request: NextRequest) {
       // --- Dashboard Stats ---
       case 'dashboard': {
         // Fetch tasks and submissions separately to handle errors independently
-        const [tasksResult, submissionsResult] = await Promise.all([
-          supabase.from('tasks').select('*').catch(() => ({ data: [], error: null })),
-          supabase.from('submissions').select('*').catch(() => ({ data: [], error: null })),
-        ]);
+        // Note: .catch() doesn't work on Supabase query builders (not native Promises)
+        let tasksData: any[] = [];
+        let submissionsData: any[] = [];
 
-        const tasksData = tasksResult.error ? [] : (tasksResult.data || []);
-        const submissionsData = submissionsResult.error ? [] : (submissionsResult.data || []);
+        try {
+          const taskQuery = supabase.from('tasks').select('*');
+          const taskResult = await taskQuery;
+          if (!taskResult.error && taskResult.data) tasksData = taskResult.data;
+        } catch { /* tasks query failed, use empty results */ }
+
+        try {
+          const subQuery = supabase.from('submissions').select('*');
+          const subResult = await subQuery;
+          if (!subResult.error && subResult.data) submissionsData = subResult.data;
+        } catch { /* submissions query failed, use empty results */ }
 
         const tasks = tasksData.map(formatTask).filter(Boolean);
         const submissions = submissionsData.map(formatSubmission).filter(Boolean);
