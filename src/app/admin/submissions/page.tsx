@@ -547,12 +547,50 @@ export default function AdminSubmissionsPage() {
                     )}
 
                     {submission.status === 'rejected' && (
-                      <Link
-                        href={`/admin/tasks/${submission.taskId}/edit`}
-                        className="btn-secondary px-4 py-3 text-sm"
-                      >
-                        View Task
-                      </Link>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={async () => {
+                            const { updateSubmission } = await import('@/lib/store');
+                            await updateSubmission(submission.refId, {
+                              status: 'pending',
+                            });
+                            setSubmissions(prev =>
+                              prev.map(s =>
+                                s.refId === submission.refId ? { ...s, status: 'pending' as const } : s
+                              )
+                            );
+                          }}
+                          className="btn-secondary px-3 py-2 text-xs"
+                        >
+                          Revert to Pending
+                        </button>
+                        <Link
+                          href={`/admin/tasks/${submission.taskId}/edit`}
+                          className="btn-secondary px-3 py-2 text-xs"
+                        >
+                          View Task
+                        </Link>
+                      </div>
+                    )}
+                    {submission.status === 'approved' && (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={async () => {
+                            const { updateSubmission } = await import('@/lib/store');
+                            await updateSubmission(submission.refId, {
+                              status: 'pending',
+                            });
+                            setSubmissions(prev =>
+                              prev.map(s =>
+                                s.refId === submission.refId ? { ...s, status: 'pending' as const } : s
+                              )
+                            );
+                          }}
+                          className="btn-secondary px-3 py-2 text-xs"
+                        >
+                          Revert to Pending
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
