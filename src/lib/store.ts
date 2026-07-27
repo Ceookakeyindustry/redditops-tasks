@@ -403,6 +403,13 @@ export async function getScreenshotUrl(bucketPath: string): Promise<string> {
   return bucketPath; // The URL is returned directly from the upload
 }
 
+// ==================== TASK FILE UPLOAD ====================
+
+export async function uploadTaskFile(file: File): Promise<string> {
+  // Reuse the same upload endpoint as screenshots
+  return uploadScreenshot(file);
+}
+
 // ==================== CHAT ====================
 
 export async function getChatMessages(refId?: string): Promise<ChatMessage[]> {

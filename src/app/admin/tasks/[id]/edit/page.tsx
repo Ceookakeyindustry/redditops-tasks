@@ -56,8 +56,12 @@ export default function EditTaskPage() {
   const [targetSubreddits, setTargetSubreddits] = useState('');
   const [suggestedTitle, setSuggestedTitle] = useState('');
   const [suggestedBody, setSuggestedBody] = useState('');
-  const [images, setImages] = useState<string[]>([]);
-  const [video, setVideo] = useState('');
+  const [imageUrls, setImageUrls] = useState<string[]>([]); // Permanent URLs from DB
+  const [imageFiles, setImageFiles] = useState<File[]>([]); // New files to upload
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]); // Preview of new files
+  const [videoUrl, setVideoUrl] = useState(''); // Permanent URL from DB
+  const [videoFile, setVideoFile] = useState<File | null>(null); // New file to upload
+  const [videoPreview, setVideoPreview] = useState(''); // Preview of new file
 
   useEffect(() => {
     (async () => {
@@ -90,8 +94,8 @@ export default function EditTaskPage() {
       setTargetSubreddits(found.targetSubreddits || '');
       setSuggestedTitle(found.suggestedTitle || '');
       setSuggestedBody(found.suggestedBody || '');
-      setImages(found.images || []);
-      setVideo(found.video || '');
+      setImageUrls(found.images || []);
+      setVideoUrl(found.video || '');
       setLoading(false);
     })();
   }, [taskId, router]);
@@ -121,7 +125,7 @@ export default function EditTaskPage() {
         throw new Error('Please enter a valid payment amount.');
       }
 
-      const { updateTask } = await import('@/lib/store');
+      const { updateTask, uploadTaskFile } = await import('@/lib/store');
 
       const updateData: any = {
         title: title.trim(),
@@ -139,12 +143,38 @@ export default function EditTaskPage() {
         targetSubreddits: task?.type === 'post' ? (targetSubreddits.trim() || undefined) : undefined,
         suggestedTitle: task?.type === 'post' ? (suggestedTitle.trim() || undefined) : undefined,
         suggestedBody: task?.type === 'post' ? (suggestedBody.trim() || undefined) : undefined,
-        images: task?.type === 'post' ? (images.length > 0 ? images : undefined) : undefined,
-        video: task?.type === 'post' ? (video || undefined) : undefined,
       };
+
+      // Upload new image files
+      const uploadedImages: string[] = [];
+      for (const file of imageFiles) {
+        try {
+          const url = await uploadTaskFile(file);
+          uploadedImages.push(url);
+        } catch {}
+      }
+
+      // Combine existing permanent URLs with newly uploaded ones
+      updateData.images = [...imageUrls, ...uploadedImages];
+      if (updateData.images.length === 0) updateData.images = undefined;
+
+      // Upload video if new file
+      if (videoFile) {
+        try {
+          updateData.video = await uploadTaskFile(videoFile);
+        } catch {
+          updateData.video = videoUrl || undefined;
+        }
+      } else {
+        updateData.video = videoUrl || undefined;
+      }
 
       await updateTask(taskId, updateData);
       setSuccess('Task updated successfully!');
+
+      // Clean up object URLs
+      imagePreviews.forEach(url => URL.revokeObjectURL(url));
+      if (videoPreview) URL.revokeObjectURL(videoPreview);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to update task.');
     } finally {
@@ -509,12 +539,29 @@ export default function EditTaskPage() {
                   Images
                 </label>
                 <div className="flex flex-wrap gap-3 mb-3">
-                  {images.map((img, idx) => (
-                    <div key={idx} className="relative w-24 h-24 rounded-xl overflow-hidden bg-gray-100 border border-gray-200">
-                      <img src={img} alt={`Image preview ${idx + 1}`} className="w-full h-full object-cover" />
+                  {/* Saved permanent images */}
+                  {imageUrls.map((img, idx) => (
+                    <div key={`saved-${idx}`} className="relative w-24 h-24 rounded-xl overflow-hidden bg-gray-100 border border-gray-200">
+                      <img src={img} alt={`Image ${idx + 1}`} className="w-full h-full object-cover" />
                       <button
                         type="button"
-                        onClick={() => setImages(prev => prev.filter((_, i) => i !== idx))}
+                        onClick={() => setImageUrls(prev => prev.filter((_, i) => i !== idx))}
+                        className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/50 flex items-center justify-center hover:bg-black/70 transition-colors"
+                      >
+                        <X className="w-3 h-3 text-white" />
+                      </button>
+                    </div>
+                  ))}
+                  {/* New upload previews */}
+                  {imagePreviews.map((img, idx) => (
+                    <div key={`new-${idx}`} className="relative w-24 h-24 rounded-xl overflow-hidden bg-gray-100 border border-gray-200 ring-2 ring-emerald-500/50">
+                      <img src={img} alt={`New image ${idx + 1}`} className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setImageFiles(prev => prev.filter((_, i) => i !== idx));
+                          setImagePreviews(prev => prev.filter((_, i) => i !== idx));
+                        }}
                         className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/50 flex items-center justify-center hover:bg-black/70 transition-colors"
                       >
                         <X className="w-3 h-3 text-white" />
@@ -524,7 +571,7 @@ export default function EditTaskPage() {
                 </div>
                 <label className="flex items-center gap-2 px-4 py-3 rounded-xl border border-dashed border-gray-200 text-gray-400 hover:border-[#8B5CF6]/30 hover:text-[#8B5CF6] cursor-pointer transition-all">
                   <Upload className="w-4 h-4" />
-                  <span className="text-sm">Upload Images</span>
+                  <span className="text-sm">Add Images</span>
                   <input
                     type="file"
                     accept="image/*"
@@ -533,8 +580,9 @@ export default function EditTaskPage() {
                       const files = e.target.files;
                       if (!files) return;
                       Array.from(files).forEach(file => {
-                        const url = URL.createObjectURL(file);
-                        setImages(prev => [...prev, url]);
+                        const preview = URL.createObjectURL(file);
+                        setImageFiles(prev => [...prev, file]);
+                        setImagePreviews(prev => [...prev, preview]);
                       });
                     }}
                     className="hidden"
@@ -547,14 +595,14 @@ export default function EditTaskPage() {
                 <label className="block text-sm font-medium text-gray-500 mb-2">
                   Video (optional)
                 </label>
-                {video && (
+                {(videoUrl || videoPreview) && (
                   <div className="mb-3 relative w-full max-w-xs aspect-video rounded-xl overflow-hidden bg-gray-100 border border-gray-200">
                     <video controls className="w-full h-full">
-                      <source src={video} />
+                      <source src={videoPreview || videoUrl} />
                     </video>
                     <button
                       type="button"
-                      onClick={() => setVideo('')}
+                      onClick={() => { setVideoUrl(''); setVideoFile(null); setVideoPreview(''); }}
                       className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/50 flex items-center justify-center hover:bg-black/70 transition-colors"
                     >
                       <X className="w-3 h-3 text-white" />
@@ -563,15 +611,16 @@ export default function EditTaskPage() {
                 )}
                 <label className="flex items-center gap-2 px-4 py-3 rounded-xl border border-dashed border-gray-200 text-gray-400 hover:border-[#8B5CF6]/30 hover:text-[#8B5CF6] cursor-pointer transition-all">
                   <Upload className="w-4 h-4" />
-                  <span className="text-sm">Upload Video</span>
+                  <span className="text-sm">Upload New Video</span>
                   <input
                     type="file"
                     accept="video/*"
                     onChange={e => {
                       const file = e.target.files?.[0];
                       if (!file) return;
-                      const url = URL.createObjectURL(file);
-                      setVideo(url);
+                      const preview = URL.createObjectURL(file);
+                      setVideoFile(file);
+                      setVideoPreview(preview);
                     }}
                     className="hidden"
                   />

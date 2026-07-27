@@ -58,8 +58,11 @@ export default function NewTaskPage() {
   const [targetSubreddits, setTargetSubreddits] = useState('');
   const [suggestedTitle, setSuggestedTitle] = useState('');
   const [suggestedBody, setSuggestedBody] = useState('');
-  const [images, setImages] = useState<string[]>([]);
-  const [video, setVideo] = useState('');
+  // Store File objects for new uploads and permanent URLs for saved ones
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [videoPreview, setVideoPreview] = useState('');
 
   useEffect(() => {
     (async () => {
@@ -85,24 +88,27 @@ export default function NewTaskPage() {
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files) return;
-    // In a real app, upload to a storage service and get URLs
-    // For now, create object URLs
-    Array.from(files).forEach(file => {
-      const url = URL.createObjectURL(file);
-      setImages(prev => [...prev, url]);
+    if (!files) return;    Array.from(files).forEach(file => {
+      const preview = URL.createObjectURL(file);
+      setImageFiles(prev => [...prev, file]);
+      setImagePreviews(prev => [...prev, preview]);
     });
   };
 
   const removeImage = (idx: number) => {
-    setImages(prev => prev.filter((_, i) => i !== idx));
+    setImageFiles(prev => prev.filter((_, i) => i !== idx));
+    setImagePreviews(prev => {
+      URL.revokeObjectURL(prev[idx]);
+      return prev.filter((_, i) => i !== idx);
+    });
   };
 
   const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const url = URL.createObjectURL(file);
-    setVideo(url);
+    const preview = URL.createObjectURL(file);
+    setVideoFile(file);
+    setVideoPreview(preview);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -118,7 +124,7 @@ export default function NewTaskPage() {
         throw new Error('Please enter a valid payment amount.');
       }
 
-      const { createTask } = await import('@/lib/store');
+      const { createTask, uploadTaskFile } = await import('@/lib/store');
 
       const taskData: any = {
         title: title.trim(),
@@ -137,8 +143,6 @@ export default function NewTaskPage() {
         targetSubreddits: taskType === 'post' ? (targetSubreddits.trim() || undefined) : undefined,
         suggestedTitle: taskType === 'post' ? (suggestedTitle.trim() || undefined) : undefined,
         suggestedBody: taskType === 'post' ? (suggestedBody.trim() || undefined) : undefined,
-        images: taskType === 'post' ? (images.length > 0 ? images : undefined) : undefined,
-        video: taskType === 'post' ? (video || undefined) : undefined,
       };
 
       // Add custom task ID if provided
@@ -146,7 +150,34 @@ export default function NewTaskPage() {
         taskData.taskId = customTaskId.trim();
       }
 
-      const newTask = await createTask(taskData);
+      // Upload images to Supabase Storage if any
+      const uploadedImages: string[] = [];
+      if (imageFiles.length > 0) {
+        for (const file of imageFiles) {
+          try {
+            const url = await uploadTaskFile(file);
+            uploadedImages.push(url);
+          } catch {
+            // Skip failed uploads
+          }
+        }
+      }
+      taskData.images = uploadedImages.length > 0 ? uploadedImages : undefined;
+
+      // Upload video if present
+      if (videoFile) {
+        try {
+          taskData.video = await uploadTaskFile(videoFile);
+        } catch {
+          taskData.video = undefined;
+        }
+      }
+
+      await createTask(taskData);
+
+      // Clean up object URLs
+      imagePreviews.forEach(url => URL.revokeObjectURL(url));
+      if (videoPreview) URL.revokeObjectURL(videoPreview);
 
       router.push('/admin/dashboard');
     } catch (err: unknown) {
@@ -534,15 +565,13 @@ export default function NewTaskPage() {
                   className="textarea-field"
                   rows={6}
                 />
-              </div>
-
-              {/* Images */}
+              </div>                {/* Images */}
               <div>
                 <label className="block text-sm font-medium text-gray-500 mb-2">
                   Images
                 </label>
                 <div className="flex flex-wrap gap-3 mb-3">
-                  {images.map((img, idx) => (
+                  {imagePreviews.map((img, idx) => (
                     <div key={idx} className="relative w-24 h-24 rounded-xl overflow-hidden bg-[#2A2A2A]">
                       <img src={img} alt={`Image preview ${idx + 1}`} className="w-full h-full object-cover" />
                       <button
@@ -573,14 +602,14 @@ export default function NewTaskPage() {
                 <label className="block text-sm font-medium text-gray-500 mb-2">
                   Video (optional)
                 </label>
-                {video && (
+                {videoPreview && (
                   <div className="mb-3 relative w-full max-w-xs aspect-video rounded-xl overflow-hidden bg-[#2A2A2A]">
                     <video controls className="w-full h-full">
-                      <source src={video} />
+                      <source src={videoPreview} />
                     </video>
                     <button
                       type="button"
-                      onClick={() => setVideo('')}
+                      onClick={() => { setVideoFile(null); setVideoPreview(''); }}
                       className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/50 flex items-center justify-center hover:bg-black/70 transition-colors"
                     >
                       <X className="w-3 h-3 text-white" />
