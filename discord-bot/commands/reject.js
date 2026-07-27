@@ -71,6 +71,9 @@ module.exports = {
           rejection_reason: reason,
         })
         .eq('ref_id', submission.refId);
+    } else if (supabase && !submission) {
+      // No submission exists yet, just reset the task
+      console.log(`No submission found for ${taskId}, just resetting task.`);
     }
 
     // Log the action

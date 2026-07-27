@@ -4,7 +4,7 @@ const { getTask, getTaskSubmission, updateTask, addActionLog, getSupabase } = re
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('approve')
-    .setDescription('Approve a submitted task')
+    .setDescription('Approve a submission and mark as paid')
     .addStringOption(option =>
       option.setName('task_id')
         .setDescription('Task ID (e.g., ROT-001)')
@@ -20,12 +20,6 @@ module.exports = {
       return interaction.editReply(`❌ Task **${taskId}** not found.`);
     }
 
-    if (task.status !== 'submitted') {
-      return interaction.editReply(
-        `❌ Task **${taskId}** has not been submitted yet. Current status: **${task.status}**.`
-      );
-    }
-
     // Get the submission
     const submission = await getTaskSubmission(taskId);
     if (!submission) {
@@ -35,19 +29,19 @@ module.exports = {
     // Update task status
     await updateTask(taskId, { status: 'approved' });
 
-    // Update submission in Supabase (status only, is_paid is handled separately)
+    // Update submission in Supabase - set to paid
     const supabase = getSupabase();
     if (supabase) {
       await supabase
         .from('submissions')
-        .update({ status: 'approved' })
+        .update({ status: 'paid', paid_at: new Date().toISOString() })
         .eq('ref_id', submission.refId);
     }
 
     // Log the action
     await addActionLog(
       taskId,
-      'approved',
+      'paid',
       interaction.user.tag,
       { assignedDiscordUsername: task.assignedDiscordUsername }
     );
@@ -59,8 +53,8 @@ module.exports = {
         if (user) {
           const dmEmbed = new EmbedBuilder()
             .setColor(0x10B981)
-            .setTitle('✅ Submission Approved')
-            .setDescription(`Your submission for **${taskId}** has been approved.`)
+            .setTitle('✅ Payment Completed')
+            .setDescription(`Your submission for **${taskId}** has been approved and paid.`)
             .addFields(
               { name: 'Task', value: `${taskId} - ${task.title}`, inline: true },
               { name: 'Payment', value: `$${parseFloat(task.payment).toFixed(2)}`, inline: true },
@@ -70,7 +64,7 @@ module.exports = {
           await user.send({ embeds: [dmEmbed] });
         }
       } catch (dmError) {
-        console.warn(`⚠️ Could not DM user for approval: ${dmError.message}`);
+        console.warn(`⚠️ Could not DM user: ${dmError.message}`);
       }
     }
 
@@ -81,7 +75,7 @@ module.exports = {
         const channel = await interaction.client.channels.fetch(logChannelId);
         if (channel) {
           await channel.send(
-            `✅ **Task Approved**\n**${taskId}** - ${task.title}\nApproved by: ${interaction.user.tag}\nWorker: ${task.assignedDiscordUsername || 'Unknown'}`
+            `💰 **Task Paid**\n**${taskId}** - ${task.title}\nApproved by: ${interaction.user.tag}\nWorker: ${task.assignedDiscordUsername || 'Unknown'}\nAmount: $${parseFloat(task.payment).toFixed(2)}`
           );
         }
       } catch (e) {}
@@ -89,11 +83,12 @@ module.exports = {
 
     const embed = new EmbedBuilder()
       .setColor(0x10B981)
-      .setTitle('✅ Task Approved')
+      .setTitle('💰 Task Paid')
       .addFields(
         { name: 'Task', value: `${taskId} - ${task.title}`, inline: false },
         { name: 'Worker', value: task.assignedDiscordUsername || 'Unknown', inline: true },
         { name: 'Payment', value: `$${parseFloat(task.payment).toFixed(2)}`, inline: true },
+        { name: 'Status', value: '✅ Paid', inline: true },
       )
       .setTimestamp();
 

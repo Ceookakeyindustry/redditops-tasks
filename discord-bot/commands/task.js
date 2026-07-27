@@ -27,7 +27,7 @@ module.exports = {
       available: '🟢 Available',
       assigned: '🔵 Assigned',
       submitted: '🟡 Submitted',
-      approved: '✅ Approved',
+      approved: '💰 Paid',
       expired: '🔴 Expired',
     }[task.status] || task.status;
 
