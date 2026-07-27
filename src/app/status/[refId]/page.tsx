@@ -7,7 +7,7 @@ import type { Submission, ScreenshotType, ScreenshotProof, SubmissionStatus } fr
 import { SCREENSHOT_TYPE_LABELS, ALL_SCREENSHOT_TYPES, SUBMISSION_STATUS_LABELS, isEditableStatus, getNextStatus } from '@/lib/types';
 import {
   Clock, CheckCircle, XCircle, AlertTriangle, ArrowLeft, DollarSign,
-  Upload, Image, Edit3, ExternalLink, Save, X, Eye,
+  Upload, Image, Edit3, ExternalLink, Save, X, Eye, Download,
 } from 'lucide-react';
 
 export default function SubmissionPortalPage() {
@@ -444,7 +444,19 @@ export default function SubmissionPortalPage() {
                       </div>
                       <p className="text-xs font-medium text-gray-900">{SCREENSHOT_TYPE_LABELS[ss.type]}</p>
                       <p className="text-xs text-gray-400">{new Date(ss.uploadedAt).toLocaleDateString()}</p>
-                      {ss.fileName && <p className="text-xs text-gray-400 truncate">{ss.fileName}</p>}
+                      <div className="flex items-center justify-between mt-1">
+                        {ss.fileName && <p className="text-xs text-gray-400 truncate flex-1 min-w-0 mr-1">{ss.fileName}</p>}
+                        <a
+                          href={ss.url}
+                          download={ss.fileName || `screenshot-${ss.type}.png`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[#8B5CF6] hover:text-[#A78BFA] transition-colors flex-shrink-0"
+                          title="Download screenshot"
+                        >
+                          <Download className="w-4 h-4" />
+                        </a>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -513,10 +525,29 @@ export default function SubmissionPortalPage() {
       {/* Screenshot Preview Modal */}
       {previewUrl && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm cursor-pointer"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
           onClick={() => setPreviewUrl(null)}
         >
           <div className="max-w-4xl max-h-[90vh] rounded-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+            {/* Top bar with download */}
+            <div className="flex items-center justify-between px-4 py-2 bg-white/10 backdrop-blur-sm">
+              <button
+                onClick={() => setPreviewUrl(null)}
+                className="text-white/70 hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              <a
+                href={previewUrl}
+                download
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors text-sm"
+              >
+                <Download className="w-4 h-4" />
+                Download
+              </a>
+            </div>
             <img src={previewUrl} alt="Screenshot preview" className="w-full h-full object-contain" />
           </div>
         </div>

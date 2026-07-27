@@ -17,6 +17,8 @@ import {
   Send,
   ChevronRight,
   ChevronDown,
+  Download,
+  X,
 } from 'lucide-react';
 import type { Submission, Task, SubmissionStatus } from '@/lib/types';
 import { formatDate, PRESET_REJECTION_REASONS, SCREENSHOT_TYPE_LABELS, SUBMISSION_STATUS_LABELS, SUBMISSION_STATUS_FLOW, getNextStatus } from '@/lib/types';
@@ -490,20 +492,31 @@ export default function AdminSubmissionsPage() {
                         </p>
                         <div className="flex flex-wrap gap-2">
                           {submission.screenshots.map((ss, idx) => (
-                            <button
-                              key={idx}
-                              onClick={() => setPreviewScreenshot(ss.url)}
-                              className="group relative w-16 h-16 rounded-lg overflow-hidden bg-gray-100 border border-gray-200 hover:border-[#8B5CF6]/40 transition-all flex-shrink-0"
-                              title={SCREENSHOT_TYPE_LABELS[ss.type]}
-                            >
-                              <img src={ss.url} alt={SCREENSHOT_TYPE_LABELS[ss.type]} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-200" />
-                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                                <Eye className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                              </div>
-                              <span className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[9px] leading-tight px-1 py-0.5 truncate text-center">
+                            <div key={idx} className="group relative w-16 h-16 rounded-lg overflow-hidden bg-gray-100 border border-gray-200 hover:border-[#8B5CF6]/40 transition-all flex-shrink-0">
+                              <button
+                                onClick={() => setPreviewScreenshot(ss.url)}
+                                className="w-full h-full"
+                                title={SCREENSHOT_TYPE_LABELS[ss.type]}
+                              >
+                                <img src={ss.url} alt={SCREENSHOT_TYPE_LABELS[ss.type]} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-200" />
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                                  <Eye className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                                </div>
+                              </button>
+                              <a
+                                href={ss.url}
+                                download={ss.fileName || `screenshot-${ss.type}.png`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
+                                title="Download"
+                              >
+                                <Download className="w-3 h-3 text-white" />
+                              </a>
+                              <span className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[9px] leading-tight px-1 py-0.5 truncate text-center pointer-events-none">
                                 {SCREENSHOT_TYPE_LABELS[ss.type]?.replace('Screenshot', '').replace('Reddit ', '').trim() || ss.type}
                               </span>
-                            </button>
+                            </div>
                           ))}
                         </div>
                       </div>
@@ -659,10 +672,28 @@ export default function AdminSubmissionsPage() {
       {/* Screenshot Preview Modal */}
       {previewScreenshot && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm cursor-pointer"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
           onClick={() => setPreviewScreenshot(null)}
         >
           <div className="max-w-4xl max-h-[90vh] rounded-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-2 bg-white/10 backdrop-blur-sm">
+              <button
+                onClick={() => setPreviewScreenshot(null)}
+                className="text-white/70 hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              <a
+                href={previewScreenshot}
+                download
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors text-sm"
+              >
+                <Download className="w-4 h-4" />
+                Download
+              </a>
+            </div>
             <img src={previewScreenshot} alt="Screenshot preview" className="w-full h-full object-contain" />
           </div>
         </div>

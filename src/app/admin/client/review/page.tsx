@@ -15,6 +15,8 @@ import {
   Image,
   AlertTriangle,
   ArrowLeft,
+  Download,
+  X,
 } from 'lucide-react';
 import type { Submission, Task, ScreenshotProof, SubmissionStatus } from '@/lib/types';
 import { formatDate, SCREENSHOT_TYPE_LABELS, PRESET_REJECTION_REASONS, SUBMISSION_STATUS_LABELS, SUBMISSION_STATUS_FLOW, getNextStatus } from '@/lib/types';
@@ -366,14 +368,26 @@ export default function ClientReviewDashboard() {
                         </div>
                         <p className="text-xs font-medium text-gray-900">{SCREENSHOT_TYPE_LABELS[ss.type]}</p>
                         <p className="text-xs text-gray-400">{new Date(ss.uploadedAt).toLocaleDateString()}</p>
-                        <a
-                          href={ss.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-[#8B5CF6] hover:text-[#A78BFA] mt-1 inline-block"
-                        >
-                          Open full size ↗
-                        </a>
+                        <div className="flex items-center justify-between mt-1">
+                          <a
+                            href={ss.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-[#8B5CF6] hover:text-[#A78BFA] inline-block"
+                          >
+                            Open full size ↗
+                          </a>
+                          <a
+                            href={ss.url}
+                            download={ss.fileName || `screenshot-${ss.type}.png`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-gray-400 hover:text-[#8B5CF6] transition-colors"
+                            title="Download"
+                          >
+                            <Download className="w-4 h-4" />
+                          </a>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -501,10 +515,28 @@ export default function ClientReviewDashboard() {
       {/* Screenshot Preview Modal */}
       {previewScreenshot && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm cursor-pointer"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
           onClick={() => setPreviewScreenshot(null)}
         >
           <div className="max-w-4xl max-h-[90vh] rounded-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-2 bg-white/10 backdrop-blur-sm">
+              <button
+                onClick={() => setPreviewScreenshot(null)}
+                className="text-white/70 hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              <a
+                href={previewScreenshot}
+                download
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors text-sm"
+              >
+                <Download className="w-4 h-4" />
+                Download
+              </a>
+            </div>
             <img src={previewScreenshot} alt="Screenshot preview" className="w-full h-full object-contain" />
           </div>
         </div>
