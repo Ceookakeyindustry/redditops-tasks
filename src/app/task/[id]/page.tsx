@@ -83,38 +83,22 @@ export default function TaskPage() {
 
     // Check access code
     const isCodeValid = accessCode === task.accessCode && !task.accessCodeDisabled;
-
-    // Check task is assigned (Discord system requires assignment)
-    const isAssigned = task.status === 'assigned';
-    const hasSubmitted = task.status === 'submitted' || task.status === 'approved';
-    const isExpired = task.status === 'expired' || (task.expiresAt && new Date(task.expiresAt) <= new Date());
+    const isExpired = task.status === 'expired';
 
     // Log the access attempt
     try {
       await fetch('/api/log-access', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ taskId, success: isCodeValid && isAssigned && !hasSubmitted && !isExpired }),
+        body: JSON.stringify({ taskId, success: isCodeValid && !isExpired }),
       });
     } catch {
       const { logAccess } = await import('@/lib/store');
-      await logAccess(taskId, 'unknown', isCodeValid && isAssigned && !hasSubmitted && !isExpired);
+      await logAccess(taskId, 'unknown', isCodeValid && !isExpired);
     }
 
     if (!isCodeValid) {
-      setError('Invalid Task ID or Access Code.');
-      setVerifying(false);
-      return;
-    }
-
-    if (!isAssigned) {
-      setError('This task is not assigned to anyone. An admin must assign it to you via Discord first.');
-      setVerifying(false);
-      return;
-    }
-
-    if (hasSubmitted) {
-      setError('This task has already been submitted and is no longer accessible.');
+      setError('Invalid Access Code.');
       setVerifying(false);
       return;
     }
@@ -250,9 +234,9 @@ export default function TaskPage() {
               <Lock className="w-8 h-8 text-[#8B5CF6]" />
             </div>
 
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Task Locked</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Enter Access Code</h2>
             <p className="text-gray-500 mb-8">
-              Enter the Access Code you received via Discord DM to view this task.
+              Enter the access code to view this task.
             </p>
 
             <div className="space-y-4 text-left">
@@ -271,19 +255,18 @@ export default function TaskPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-500 mb-2">
                   Access Code
-                </label>
-                <input
-                  type="text"
-                  placeholder="Enter access code from Discord DM..."
-                  value={accessCode}
-                  onChange={e => {
-                    setAccessCode(e.target.value);
-                    setError('');
-                  }}
-                  onKeyDown={e => e.key === 'Enter' && handleUnlock()}
-                  className="input-field tracking-widest font-mono uppercase"
-                  autoFocus
-                />
+                </label>                  <input
+                    type="text"
+                    placeholder="Enter access code..."
+                    value={accessCode}
+                    onChange={e => {
+                      setAccessCode(e.target.value);
+                      setError('');
+                    }}
+                    onKeyDown={e => e.key === 'Enter' && handleUnlock()}
+                    className="input-field tracking-widest font-mono uppercase"
+                    autoFocus
+                  />
               </div>
 
               {error && (
@@ -309,7 +292,7 @@ export default function TaskPage() {
               </button>
 
               <p className="text-xs text-gray-400 text-center mt-4">
-                Don&apos;t have an access code? Ask an admin to assign this task to you via Discord.
+                Don&apos;t have an access code? Contact the task admin.
               </p>
             </div>
           </div>
