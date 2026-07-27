@@ -12,9 +12,11 @@ import {
   Clock,
   MessageSquare,
   DollarSign,
+  Image,
+  Eye,
 } from 'lucide-react';
 import type { Submission, Task } from '@/lib/types';
-import { formatDate, PRESET_REJECTION_REASONS } from '@/lib/types';
+import { formatDate, PRESET_REJECTION_REASONS, SCREENSHOT_TYPE_LABELS } from '@/lib/types';
 import ConfettiEffect from '@/components/ConfettiEffect';
 
 export default function AdminSubmissionsPage() {
@@ -32,6 +34,9 @@ export default function AdminSubmissionsPage() {
 
   // Confetti trigger counter to ensure re-trigger on every approve
   const [confettiTrigger, setConfettiTrigger] = useState(0);
+
+  // Screenshot preview
+  const [previewScreenshot, setPreviewScreenshot] = useState<string | null>(null);
 
   // Rejection modal
   const [rejectingSubmission, setRejectingSubmission] = useState<string | null>(null);
@@ -450,6 +455,34 @@ export default function AdminSubmissionsPage() {
                         View Proof
                       </a>
                     )}
+
+                    {/* Screenshot thumbnails */}
+                    {submission.screenshots && submission.screenshots.length > 0 && (
+                      <div className="mt-3">
+                        <p className="text-xs text-gray-400 mb-2 flex items-center gap-1.5">
+                          <Image className="w-3 h-3" />
+                          Screenshots ({submission.screenshots.length})
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {submission.screenshots.map((ss, idx) => (
+                            <button
+                              key={idx}
+                              onClick={() => setPreviewScreenshot(ss.url)}
+                              className="group relative w-16 h-16 rounded-lg overflow-hidden bg-gray-100 border border-gray-200 hover:border-[#8B5CF6]/40 transition-all flex-shrink-0"
+                              title={SCREENSHOT_TYPE_LABELS[ss.type]}
+                            >
+                              <img src={ss.url} alt={SCREENSHOT_TYPE_LABELS[ss.type]} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-200" />
+                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                                <Eye className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                              </div>
+                              <span className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[9px] leading-tight px-1 py-0.5 truncate text-center">
+                                {SCREENSHOT_TYPE_LABELS[ss.type]?.replace('Screenshot', '').replace('Reddit ', '').trim() || ss.type}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     </div>
                   </div>
 
@@ -546,6 +579,18 @@ export default function AdminSubmissionsPage() {
           </div>
         )}
       </div>
+
+      {/* Screenshot Preview Modal */}
+      {previewScreenshot && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm cursor-pointer"
+          onClick={() => setPreviewScreenshot(null)}
+        >
+          <div className="max-w-4xl max-h-[90vh] rounded-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+            <img src={previewScreenshot} alt="Screenshot preview" className="w-full h-full object-contain" />
+          </div>
+        </div>
+      )}
 
       {/* Light-themed confetti on approval */}
       <ConfettiEffect trigger={confettiTrigger} duration={3000} />
