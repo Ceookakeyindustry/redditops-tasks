@@ -13,6 +13,8 @@ import {
   Globe,
   Lock,
   Camera,
+  Upload,
+  X,
 } from 'lucide-react';
 import type { Task, ScreenshotType } from '@/lib/types';
 import { generateAccessCode, ALL_SCREENSHOT_TYPES, SCREENSHOT_TYPE_LABELS } from '@/lib/types';
@@ -54,6 +56,8 @@ export default function EditTaskPage() {
   const [targetSubreddits, setTargetSubreddits] = useState('');
   const [suggestedTitle, setSuggestedTitle] = useState('');
   const [suggestedBody, setSuggestedBody] = useState('');
+  const [images, setImages] = useState<string[]>([]);
+  const [video, setVideo] = useState('');
 
   useEffect(() => {
     (async () => {
@@ -86,6 +90,8 @@ export default function EditTaskPage() {
       setTargetSubreddits(found.targetSubreddits || '');
       setSuggestedTitle(found.suggestedTitle || '');
       setSuggestedBody(found.suggestedBody || '');
+      setImages(found.images || []);
+      setVideo(found.video || '');
       setLoading(false);
     })();
   }, [taskId, router]);
@@ -133,6 +139,8 @@ export default function EditTaskPage() {
         targetSubreddits: task?.type === 'post' ? (targetSubreddits.trim() || undefined) : undefined,
         suggestedTitle: task?.type === 'post' ? (suggestedTitle.trim() || undefined) : undefined,
         suggestedBody: task?.type === 'post' ? (suggestedBody.trim() || undefined) : undefined,
+        images: task?.type === 'post' ? (images.length > 0 ? images : undefined) : undefined,
+        video: task?.type === 'post' ? (video || undefined) : undefined,
       };
 
       await updateTask(taskId, updateData);
@@ -493,6 +501,81 @@ export default function EditTaskPage() {
                   className="textarea-field"
                   rows={6}
                 />
+              </div>
+
+              {/* Images */}
+              <div>
+                <label className="block text-sm font-medium text-gray-500 mb-2">
+                  Images
+                </label>
+                <div className="flex flex-wrap gap-3 mb-3">
+                  {images.map((img, idx) => (
+                    <div key={idx} className="relative w-24 h-24 rounded-xl overflow-hidden bg-gray-100 border border-gray-200">
+                      <img src={img} alt={`Image preview ${idx + 1}`} className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setImages(prev => prev.filter((_, i) => i !== idx))}
+                        className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/50 flex items-center justify-center hover:bg-black/70 transition-colors"
+                      >
+                        <X className="w-3 h-3 text-white" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <label className="flex items-center gap-2 px-4 py-3 rounded-xl border border-dashed border-gray-200 text-gray-400 hover:border-[#8B5CF6]/30 hover:text-[#8B5CF6] cursor-pointer transition-all">
+                  <Upload className="w-4 h-4" />
+                  <span className="text-sm">Upload Images</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={e => {
+                      const files = e.target.files;
+                      if (!files) return;
+                      Array.from(files).forEach(file => {
+                        const url = URL.createObjectURL(file);
+                        setImages(prev => [...prev, url]);
+                      });
+                    }}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+
+              {/* Video */}
+              <div>
+                <label className="block text-sm font-medium text-gray-500 mb-2">
+                  Video (optional)
+                </label>
+                {video && (
+                  <div className="mb-3 relative w-full max-w-xs aspect-video rounded-xl overflow-hidden bg-gray-100 border border-gray-200">
+                    <video controls className="w-full h-full">
+                      <source src={video} />
+                    </video>
+                    <button
+                      type="button"
+                      onClick={() => setVideo('')}
+                      className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/50 flex items-center justify-center hover:bg-black/70 transition-colors"
+                    >
+                      <X className="w-3 h-3 text-white" />
+                    </button>
+                  </div>
+                )}
+                <label className="flex items-center gap-2 px-4 py-3 rounded-xl border border-dashed border-gray-200 text-gray-400 hover:border-[#8B5CF6]/30 hover:text-[#8B5CF6] cursor-pointer transition-all">
+                  <Upload className="w-4 h-4" />
+                  <span className="text-sm">Upload Video</span>
+                  <input
+                    type="file"
+                    accept="video/*"
+                    onChange={e => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const url = URL.createObjectURL(file);
+                      setVideo(url);
+                    }}
+                    className="hidden"
+                  />
+                </label>
               </div>
             </div>
           )}
