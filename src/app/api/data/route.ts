@@ -228,7 +228,7 @@ const sqlEditorLink = projectRef ? `https://supabase.com/dashboard/project/${pro
 
 function isColumnError(error: any): boolean {
   const msg = error?.message || '';
-  return msg.includes('column') && (msg.includes('does not exist') || msg.includes('not found'));
+  return msg.includes('column') && (msg.includes('does not exist') || msg.includes('not found') || msg.includes('schema cache'));
 }
 
 function migrationErrorResponse() {
