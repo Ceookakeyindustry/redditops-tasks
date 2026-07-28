@@ -27,8 +27,9 @@ import {
   Users,
   UserCheck,
   SendToBack,
+  Upload,
 } from 'lucide-react';
-import type { Submission, Task, SubmissionStatus, Label } from '@/lib/types';
+import type { Submission, Task, SubmissionStatus, Label, ScreenshotType } from '@/lib/types';
 import { formatDate, PRESET_REJECTION_REASONS, SCREENSHOT_TYPE_LABELS, SUBMISSION_STATUS_LABELS, SUBMISSION_STATUS_FLOW, getNextStatus } from '@/lib/types';
 import ConfettiEffect from '@/components/ConfettiEffect';
 import LabelManager from '@/components/LabelManager';
@@ -89,6 +90,10 @@ export default function AdminSubmissionsPage() {
   // Client queue bulk send
   const [sendingToClient, setSendingToClient] = useState(false);
 
+  // Admin screenshot upload
+  const [uploadingScreenshot, setUploadingScreenshot] = useState<string | null>(null);
+  const [uploadScreenshotType, setUploadScreenshotType] = useState<Record<string, ScreenshotType>>({});
+
   // ===== FETCH DATA =====
   const fetchData = useCallback(async () => {
     try {
@@ -104,6 +109,40 @@ export default function AdminSubmissionsPage() {
       setLoading(false);
     } catch {}
   }, [router]);
+
+  // ===== ADMIN SCREENSHOT UPLOAD =====
+  const handleAdminUploadScreenshot = async (submission: Submission, file: File, type: ScreenshotType) => {
+    setUploadingScreenshot(submission.refId);
+    try {
+      const { uploadScreenshot } = await import('@/lib/store');
+      const url = await uploadScreenshot(file);
+      const newScreenshot = {
+        type,
+        url,
+        uploadedAt: new Date().toISOString(),
+        fileName: file.name,
+      };
+      const existing = submission.screenshots || [];
+      const existingIdx = existing.findIndex(s => s.type === type);
+      let updatedScreenshots;
+      if (existingIdx >= 0) {
+        updatedScreenshots = [...existing];
+        updatedScreenshots[existingIdx] = newScreenshot;
+      } else {
+        updatedScreenshots = [...existing, newScreenshot];
+      }
+      const { updateSubmission } = await import('@/lib/store');
+      await updateSubmission(submission.refId, { screenshots: updatedScreenshots });
+      setSubmissions(prev =>
+        prev.map(s =>
+          s.refId === submission.refId ? { ...s, screenshots: updatedScreenshots } : s
+        )
+      );
+    } catch (err) {
+      console.error('Admin screenshot upload failed:', err);
+    }
+    setUploadingScreenshot(null);
+  };
 
   // ===== SUPABASE REALTIME SUBSCRIPTION =====
   useEffect(() => {
@@ -898,14 +937,14 @@ export default function AdminSubmissionsPage() {
                       )}
 
                       {/* Screenshot thumbnails */}
-                      {submission.screenshots && submission.screenshots.length > 0 && (
+                      {(submission.screenshots && submission.screenshots.length > 0) || viewMode !== 'history' ? (
                         <div className="mt-3">
                           <p className="text-xs text-gray-400 mb-2 flex items-center gap-1.5">
                             <Image className="w-3 h-3" />
-                            Screenshots ({submission.screenshots.length})
+                            Screenshots ({submission.screenshots?.length || 0})
                           </p>
                           <div className="flex flex-wrap gap-2">
-                            {submission.screenshots.map((ss, idx) => (
+                            {submission.screenshots && submission.screenshots.map((ss, idx) => (
                               <div key={idx} className="group relative w-16 h-16 rounded-lg overflow-hidden bg-gray-100 border border-gray-200 hover:border-[#8B5CF6]/40 transition-all flex-shrink-0">
                                 <button
                                   onClick={() => setPreviewScreenshot(ss.url)}
@@ -932,9 +971,50 @@ export default function AdminSubmissionsPage() {
                                 </span>
                               </div>
                             ))}
+                            {/* Admin upload button - only for editable submissions */}
+                            {viewMode !== 'history' && submission.status !== 'paid' && submission.status !== 'rejected' && (
+                              <div className="flex flex-col items-center gap-1">
+                                <select
+                                  value={uploadScreenshotType[submission.refId] || 'initial'}
+                                  onChange={e => setUploadScreenshotType(prev => ({ ...prev, [submission.refId]: e.target.value as ScreenshotType }))}
+                                  className="text-[9px] rounded-md border border-gray-200 bg-white px-1 py-0.5 text-gray-500 w-full"
+                                  onClick={e => e.stopPropagation()}
+                                >
+                                  <option value="initial">Initial</option>
+                                  <option value="24h_insights">24h Insights</option>
+                                  <option value="48h_visibility">48h Visibility</option>
+                                  <option value="48h_insights">48h Insights</option>
+                                </select>
+                                <div className="flex flex-col items-center justify-center w-16 h-14 rounded-lg border-2 border-dashed border-gray-300 hover:border-[#8B5CF6]/40 bg-gray-50 hover:bg-[#8B5CF6]/5 transition-all cursor-pointer group relative"
+                                  title="Upload screenshot"
+                                >
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                                    onChange={async (e) => {
+                                      const file = e.target.files?.[0];
+                                      if (file) {
+                                        const type = uploadScreenshotType[submission.refId] || 'initial';
+                                        await handleAdminUploadScreenshot(submission, file, type as ScreenshotType);
+                                        e.target.value = '';
+                                      }
+                                    }}
+                                  />
+                                  {uploadingScreenshot === submission.refId ? (
+                                    <div className="w-5 h-5 rounded-full border-2 border-[#8B5CF6]/30 border-t-[#8B5CF6] animate-spin" />
+                                  ) : (
+                                    <>
+                                      <Upload className="w-4 h-4 text-gray-400 group-hover:text-[#8B5CF6] transition-colors" />
+                                      <span className="text-[8px] text-gray-400 group-hover:text-[#8B5CF6]">Upload</span>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
-                      )}
+                      ) : null}
                     </div>
                   </div>
 
