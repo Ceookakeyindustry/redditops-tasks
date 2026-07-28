@@ -21,6 +21,7 @@ import {
   Search,
   ExternalLink,
   Shield,
+  History,
 } from 'lucide-react';
 import type { DashboardStats, Task, Submission } from '@/lib/types';
 import { formatPayment, formatDate } from '@/lib/types';
@@ -345,6 +346,13 @@ export default function AdminDashboardPage() {
                 >
                   <ClipboardList className="w-4 h-4 text-[#F59E0B]" />
                   <span className="text-sm text-gray-900 group-hover:text-[#8B5CF6]">Review Submissions</span>
+                </Link>
+                <Link
+                  href="/admin/submissions?view=history"
+                  className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-200 hover:border-[#8B5CF6]/30 transition-all group"
+                >
+                  <History className="w-4 h-4 text-gray-400" />
+                  <span className="text-sm text-gray-900 group-hover:text-[#8B5CF6]">Submission History</span>
                 </Link>
                 <Link
                   href="/status"
