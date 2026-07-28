@@ -24,6 +24,7 @@ ALTER TABLE submissions ADD COLUMN IF NOT EXISTS screenshots JSONB DEFAULT '[]':
 ALTER TABLE submissions ADD COLUMN IF NOT EXISTS edit_history JSONB DEFAULT '[]'::jsonb;
 ALTER TABLE submissions ADD COLUMN IF NOT EXISTS show_to_client BOOLEAN DEFAULT false;
 ALTER TABLE submissions ADD COLUMN IF NOT EXISTS custom_label TEXT;
+ALTER TABLE submissions ADD COLUMN IF NOT EXISTS labels JSONB DEFAULT '[]'::jsonb;
 -- Update submission status constraint to support new pipeline
 ALTER TABLE submissions DROP CONSTRAINT IF EXISTS submissions_status_check;
 ALTER TABLE submissions ADD CONSTRAINT submissions_status_check

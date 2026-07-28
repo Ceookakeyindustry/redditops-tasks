@@ -57,6 +57,7 @@ function formatSubmission(row: any) {
     screenshots: row.screenshots || [],
     editHistory: row.edit_history || [],
     showToClient: row.show_to_client || false,
+    labels: row.labels || [],
     customLabel: '' as string | undefined, // Loaded separately to avoid schema issues
   };
 }
@@ -239,6 +240,7 @@ ALTER TABLE tasks ADD COLUMN IF NOT EXISTS required_screenshots TEXT[] DEFAULT A
 ALTER TABLE submissions ADD COLUMN IF NOT EXISTS screenshots JSONB DEFAULT '[]'::jsonb;
 ALTER TABLE submissions ADD COLUMN IF NOT EXISTS edit_history JSONB DEFAULT '[]'::jsonb;
 ALTER TABLE submissions ADD COLUMN IF NOT EXISTS show_to_client BOOLEAN DEFAULT false;
+ALTER TABLE submissions ADD COLUMN IF NOT EXISTS labels JSONB DEFAULT '[]'::jsonb;
 NOTIFY pgrst, 'reload schema';`,
   };
 }

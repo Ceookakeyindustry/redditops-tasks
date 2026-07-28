@@ -23,10 +23,12 @@ import {
   Activity,
   Filter,
   Calendar,
+  Palette,
 } from 'lucide-react';
-import type { Submission, Task, SubmissionStatus } from '@/lib/types';
+import type { Submission, Task, SubmissionStatus, Label } from '@/lib/types';
 import { formatDate, PRESET_REJECTION_REASONS, SCREENSHOT_TYPE_LABELS, SUBMISSION_STATUS_LABELS, SUBMISSION_STATUS_FLOW, getNextStatus } from '@/lib/types';
 import ConfettiEffect from '@/components/ConfettiEffect';
+import LabelManager from '@/components/LabelManager';
 
 const ACTIVE_STATUSES = ['submitted', 'in_review', '24hr_pending', '24hr_done', '48hr_pending', '48hr_done', 'processing'];
 const HISTORY_STATUSES = ['paid', 'rejected'];
@@ -67,6 +69,9 @@ export default function AdminSubmissionsPage() {
   const [newRefId, setNewRefId] = useState('');
   const [refIdSaving, setRefIdSaving] = useState(false);
   const [refIdError, setRefIdError] = useState('');
+
+  // Label filter
+  const [labelFilter, setLabelFilter] = useState<string>('all');
 
   // Rejection modal
   const [rejectingSubmission, setRejectingSubmission] = useState<string | null>(null);
@@ -299,6 +304,11 @@ export default function AdminSubmissionsPage() {
       return true;
     })
     .filter(s => {
+      // Label filter
+      if (labelFilter !== 'all') {
+        const subLabels = (s.labels || []).map(l => l.name);
+        if (!subLabels.includes(labelFilter)) return false;
+      }
       // Search
       if (!searchQuery.trim()) return true;
       const q = searchQuery.toLowerCase();
@@ -317,6 +327,20 @@ export default function AdminSubmissionsPage() {
 
   const activeCount = submissions.filter(s => ACTIVE_STATUSES.includes(s.status)).length;
   const historyCount = submissions.filter(s => HISTORY_STATUSES.includes(s.status)).length;
+
+  // Collect all unique label names from visible submissions
+  const allLabelNames = Array.from(new Set(
+    submissions.flatMap(s => (s.labels || []).map(l => l.name))
+  )).sort();
+
+  // Get the color for a label name
+  const getLabelColor = (name: string): string => {
+    for (const s of submissions) {
+      const found = (s.labels || []).find(l => l.name === name);
+      if (found) return found.color;
+    }
+    return '#6B7280';
+  };
 
   const statusFilters = viewMode === 'active'
     ? [
@@ -363,7 +387,7 @@ export default function AdminSubmissionsPage() {
         {/* Tab Bar */}
         <div className="flex gap-1 mb-6 glass rounded-2xl p-1.5">
           <button
-            onClick={() => { setViewMode('active'); setStatusFilter('all'); setSelectedIds(new Set()); }}
+            onClick={() => { setViewMode('active'); setStatusFilter('all'); setLabelFilter('all'); setSelectedIds(new Set()); }}
             className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
               viewMode === 'active'
                 ? 'bg-white text-[#8B5CF6] shadow-sm'
@@ -379,7 +403,7 @@ export default function AdminSubmissionsPage() {
             )}
           </button>
           <button
-            onClick={() => { setViewMode('history'); setStatusFilter('all'); setSelectedIds(new Set()); }}
+            onClick={() => { setViewMode('history'); setStatusFilter('all'); setLabelFilter('all'); setSelectedIds(new Set()); }}
             className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
               viewMode === 'history'
                 ? 'bg-white text-[#8B5CF6] shadow-sm'
@@ -427,6 +451,22 @@ export default function AdminSubmissionsPage() {
                   {label}
                 </button>
               ))}
+              {/* Label filter */}
+              {allLabelNames.length > 0 && (
+                <div className="relative">
+                  <select
+                    value={labelFilter}
+                    onChange={e => setLabelFilter(e.target.value)}
+                    className="px-4 py-3 rounded-xl bg-gray-100 text-gray-500 border border-gray-200 text-sm font-medium appearance-none cursor-pointer hover:text-gray-900 transition-all"
+                  >
+                    <option value="all">All Labels</option>
+                    {allLabelNames.map(name => (
+                      <option key={name} value={name}>{name}</option>
+                    ))}
+                  </select>
+                  <Palette className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                </div>
+              )}
               {/* Date filter */}
               <div className="relative">
                 <select
@@ -667,6 +707,21 @@ export default function AdminSubmissionsPage() {
                         )}
                       </div>
 
+                      {/* Labels */}
+                      {(submission.labels || []).length > 0 && (
+                        <div className="flex flex-wrap gap-1 mb-1.5">
+                          {(submission.labels || []).map(label => (
+                            <span
+                              key={label.name}
+                              className="inline-flex items-center rounded-full text-[10px] px-1.5 py-0.5 text-white font-medium"
+                              style={{ backgroundColor: label.color }}
+                            >
+                              {label.name}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
                       {/* Task Title */}
                       <h3 className="text-gray-900 font-medium mb-1 truncate">
                         {getTaskTitle(submission.taskId)}
@@ -866,34 +921,52 @@ export default function AdminSubmissionsPage() {
                   </div>
                 </div>
 
-                {/* Active view: Client Review Toggle */}
-                {viewMode === 'active' && (submission.status === 'submitted' || submission.status === 'in_review') && (
+                {/* Active view: Labels + Client Review Toggle */}
+                {viewMode === 'active' && (
                   <div className="mt-4 pt-4 border-t border-gray-200">
-                    <label className="flex items-center gap-3 cursor-pointer group">
-                      <input
-                        type="checkbox"
-                        checked={submission.showToClient || false}
-                        onChange={async () => {
-                          const { updateSubmission } = await import('@/lib/store');
-                          const newVal = !submission.showToClient;
-                          await updateSubmission(submission.refId, { showToClient: newVal });
-                          setSubmissions(prev =>
-                            prev.map(s =>
-                              s.refId === submission.refId ? { ...s, showToClient: newVal } : s
-                            )
-                          );
-                        }}
-                        className="rounded border-gray-300 text-[#8B5CF6] focus:ring-[#8B5CF6]"
-                      />
-                      <div>
-                        <span className="text-sm font-medium text-gray-900 group-hover:text-[#8B5CF6] transition-colors">
-                          Show to Client Admin
-                        </span>
-                        <p className="text-xs text-gray-400">
-                          Client Admin will see this submission in their review dashboard
-                        </p>
+                    <div className="flex items-center gap-4 flex-wrap">
+                      {/* Label Manager */}
+                      <div className="flex items-center gap-2">
+                        <Palette className="w-3.5 h-3.5 text-gray-400" />
+                        <LabelManager
+                          labels={submission.labels || []}
+                          onChange={async (newLabels) => {
+                            const { updateSubmission } = await import('@/lib/store');
+                            await updateSubmission(submission.refId, { labels: newLabels });
+                            setSubmissions(prev =>
+                              prev.map(s =>
+                                s.refId === submission.refId ? { ...s, labels: newLabels } : s
+                              )
+                            );
+                          }}
+                          size="sm"
+                        />
                       </div>
-                    </label>
+
+                      {/* Client Review Toggle */}
+                      {(submission.status === 'submitted' || submission.status === 'in_review') && (
+                        <label className="flex items-center gap-2 cursor-pointer group">
+                          <input
+                            type="checkbox"
+                            checked={submission.showToClient || false}
+                            onChange={async () => {
+                              const { updateSubmission } = await import('@/lib/store');
+                              const newVal = !submission.showToClient;
+                              await updateSubmission(submission.refId, { showToClient: newVal });
+                              setSubmissions(prev =>
+                                prev.map(s =>
+                                  s.refId === submission.refId ? { ...s, showToClient: newVal } : s
+                                )
+                              );
+                            }}
+                            className="rounded border-gray-300 text-[#8B5CF6] focus:ring-[#8B5CF6]"
+                          />
+                          <span className="text-xs text-gray-400 group-hover:text-gray-900 transition-colors">
+                            Show to Client
+                          </span>
+                        </label>
+                      )}
+                    </div>
                   </div>
                 )}
 

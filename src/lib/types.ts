@@ -108,6 +108,23 @@ export interface AccessLog {
   success: boolean;
 }
 
+export interface Label {
+  name: string;
+  color: string;
+}
+
+export const PRESET_LABELS: Label[] = [
+  { name: 'High Priority', color: '#EF4444' },
+  { name: 'Urgent', color: '#F97316' },
+  { name: 'Waiting', color: '#F59E0B' },
+  { name: 'Client Review', color: '#3B82F6' },
+  { name: 'Needs Changes', color: '#A855F7' },
+  { name: 'Completed', color: '#10B981' },
+  { name: 'Scheduled', color: '#06B6D4' },
+  { name: 'Featured', color: '#8B5CF6' },
+  { name: 'Internal', color: '#6B7280' },
+];
+
 export interface Submission {
   id?: string;
   refId: string;
@@ -125,6 +142,7 @@ export interface Submission {
   screenshots: ScreenshotProof[];
   editHistory: EditLog[];
   showToClient: boolean;
+  labels?: Label[];
 }
 
 export interface ChatMessage {
