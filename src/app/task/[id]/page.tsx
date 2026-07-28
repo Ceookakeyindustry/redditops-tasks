@@ -173,7 +173,11 @@ export default function TaskPage() {
       await markTaskSubmitted(task.taskId);
 
       // Update local task state
-      setTask(prev => prev ? { ...prev, status: 'submitted' } : prev);
+      setTask(prev => prev ? {
+        ...prev,
+        status: prev.status === 'assigned' ? 'submitted' as const : prev.status,
+        completedCount: (prev.completedCount || 0) + 1,
+      } : prev);
 
       setSubmitted({ refId: submission.refId, requiresMoreScreenshots: (task.requiredScreenshots?.length || 1) > 1 });
       setShowSubmitForm(false);
@@ -514,6 +518,37 @@ export default function TaskPage() {
 
           {/* Sidebar */}
           <div className="space-y-6">
+            {/* Claim Counter */}
+            <div className="card p-5 animate-fade-in">
+              <h3 className="text-sm font-semibold text-gray-900 mb-3">Task Slots</h3>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-[#8B5CF6]/10 border border-[#8B5CF6]/20 flex items-center justify-center">
+                    <User className="w-4 h-4 text-[#8B5CF6]" />
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold text-gray-900">
+                      {task.completedCount || 0}{task.maxCompletions ? `/${task.maxCompletions}` : ''}
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      {task.maxCompletions
+                        ? `${task.maxCompletions - (task.completedCount || 0)} slot${task.maxCompletions - (task.completedCount || 0) !== 1 ? 's' : ''} remaining`
+                        : 'Unlimited slots'}
+                    </p>
+                  </div>
+                </div>
+                <div className={`px-3 py-1 rounded-full text-xs font-medium ${
+                  task.maxCompletions && (task.completedCount || 0) >= task.maxCompletions
+                    ? 'bg-red-500/10 text-red-400'
+                    : 'bg-emerald-500/10 text-emerald-400'
+                }`}>
+                  {task.maxCompletions && (task.completedCount || 0) >= task.maxCompletions
+                    ? 'Full'
+                    : 'Open'}
+                </div>
+              </div>
+            </div>
+
             {/* Submit Section */}
             <div className="card p-6 sticky top-24 animate-fade-in">
               {submitted ? (
@@ -663,6 +698,16 @@ export default function TaskPage() {
                     </button>
                   </div>
                 </form>
+              ) : task.maxCompletions && (task.completedCount || 0) >= task.maxCompletions ? (
+                <div className="text-center">
+                  <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto mb-4">
+                    <AlertTriangle className="w-8 h-8 text-red-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Task Full</h3>
+                  <p className="text-gray-500 text-sm">
+                    All {task.maxCompletions} slot{task.maxCompletions !== 1 ? 's' : ''} for this task {'have'} been filled.
+                  </p>
+                </div>
               ) : (
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">

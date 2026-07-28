@@ -195,19 +195,25 @@ export async function regenAccessCode(taskId: string, adminUsername?: string): P
 
 export async function markTaskSubmitted(taskId: string): Promise<Task | undefined> {
   const task = await getTask(taskId);
-  if (!task || task.status !== 'assigned') return undefined;
+  if (!task) return undefined;
 
-  const updated = await updateTask(taskId, {
-    status: 'submitted',
+  const updates: any = {
     completedCount: (task.completedCount || 0) + 1,
-  });
+  };
+
+  // Only change status to 'submitted' if currently 'assigned'
+  if (task.status === 'assigned') {
+    updates.status = 'submitted';
+  }
+
+  const updated = await updateTask(taskId, updates);
 
   if (updated) {
     await addActionLog({
       taskId,
       action: 'submitted',
-      performedBy: task.assignedDiscordUsername || 'unknown',
-      details: {},
+      performedBy: task.assignedDiscordUsername || 'web-worker',
+      details: { completedCount: updates.completedCount },
     });
   }
 

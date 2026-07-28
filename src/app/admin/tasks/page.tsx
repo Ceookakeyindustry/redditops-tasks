@@ -292,6 +292,15 @@ export default function AdminTasksPage() {
                       {task.accessCodeDisabled && (
                         <span className="text-red-400">(Disabled)</span>
                       )}
+                      {task.maxCompletions && (
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                          (task.completedCount || 0) >= task.maxCompletions
+                            ? 'bg-red-500/10 text-red-400'
+                            : 'bg-emerald-500/10 text-emerald-400'
+                        }`}>
+                          {task.completedCount || 0}/{task.maxCompletions} slots
+                        </span>
+                      )}
                     </div>
                   </div>
 
