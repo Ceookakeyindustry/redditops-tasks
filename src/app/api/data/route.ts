@@ -345,6 +345,21 @@ export async function POST(request: NextRequest) {
       // --- Create Submission ---
       case 'createSubmission': {
         if (!data) return NextResponse.json({ error: 'data required' }, { status: 400 });
+        if (!data.refId) return NextResponse.json({ error: 'refId is required' }, { status: 400 });
+        if (!data.taskId) return NextResponse.json({ error: 'taskId is required' }, { status: 400 });
+        if (!data.discordUsername) return NextResponse.json({ error: 'discordUsername is required' }, { status: 400 });
+        if (!data.payment && data.payment !== 0) return NextResponse.json({ error: 'payment is required' }, { status: 400 });
+
+        // Verify task exists
+        const { data: existingTask, error: taskError } = await supabase
+          .from('tasks')
+          .select('task_id')
+          .eq('task_id', data.taskId)
+          .single();
+
+        if (taskError || !existingTask) {
+          return NextResponse.json({ error: `Task "${data.taskId}" not found` }, { status: 400 });
+        }
 
         const dbData: any = {};
         for (const [key, value] of Object.entries(data)) {

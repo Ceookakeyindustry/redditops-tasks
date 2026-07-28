@@ -197,6 +197,7 @@ export async function markTaskSubmitted(taskId: string): Promise<Task | undefine
   const task = await getTask(taskId);
   if (!task) return undefined;
 
+  // Increment completedCount
   const updates: any = {
     completedCount: (task.completedCount || 0) + 1,
   };

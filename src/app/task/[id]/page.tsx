@@ -139,6 +139,16 @@ export default function TaskPage() {
       setSubmitError('Proof link is required.');
       return;
     }
+    try {
+      new URL(proofLink.trim());
+    } catch {
+      setSubmitError('Please enter a valid URL (e.g. https://reddit.com/r/.../comments/...).');
+      return;
+    }
+    if (!proofLink.trim().includes('reddit.com') && !proofLink.trim().includes('redd.it')) {
+      setSubmitError('Please enter a valid Reddit post/comment URL.');
+      return;
+    }
 
     setSubmitting(true);
 
