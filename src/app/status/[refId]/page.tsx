@@ -34,10 +34,15 @@ export default function SubmissionPortalPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const loadSubmission = useCallback(async () => {
-    const { getSubmission } = await import('@/lib/store');
-    const found = await getSubmission(refId);
-    setSubmission(found || null);
-    setLoading(false);
+    try {
+      const { getSubmission } = await import('@/lib/store');
+      const found = await getSubmission(refId);
+      setSubmission(found || null);
+    } catch {
+      // Submission not found or error - handled by null check below
+    } finally {
+      setLoading(false);
+    }
   }, [refId]);
 
   useEffect(() => {
@@ -71,16 +76,25 @@ export default function SubmissionPortalPage() {
   const getMissingScreenshotTypes = (): ScreenshotType[] => {
     if (!submission) return [];
     const uploadedTypes = (submission.screenshots || []).map(s => s.type);
-    // Show all non-initial screenshot types that haven't been uploaded yet
-    // The task's requiredScreenshots config determines which are actually required
+    // Show non-initial screenshot types that haven't been uploaded yet
     return ALL_SCREENSHOT_TYPES.filter(t => t !== 'initial' && !uploadedTypes.includes(t));
   };
 
-  // This will be enhanced later to check the task's requiredScreenshots
-  // Once the task data is also available in the submission portal
-
   const handleEditLink = async () => {
     if (!submission || !newProofLink.trim()) return;
+    
+    // Validate URL
+    try {
+      new URL(newProofLink.trim());
+    } catch {
+      setSaveError('Please enter a valid URL.');
+      return;
+    }
+    if (!newProofLink.trim().includes('reddit.com') && !newProofLink.trim().includes('redd.it')) {
+      setSaveError('Please enter a valid Reddit post/comment URL.');
+      return;
+    }
+
     setSaving(true);
     setSaveError('');
     try {
