@@ -33,6 +33,7 @@ export default function AdminTasksPage() {
   useEffect(() => {
     let mounted = true;
     let interval: ReturnType<typeof setInterval>;
+    let channel: any = null;
 
     const fetchData = async () => {
       try {
@@ -50,8 +51,29 @@ export default function AdminTasksPage() {
     };
 
     fetchData();
-    interval = setInterval(fetchData, 30000); // Auto-refresh every 30s
-    return () => { mounted = false; clearInterval(interval); };
+
+    // Supabase Realtime subscription
+    (async () => {
+      try {
+        const { getClient } = await import('@/lib/supabase');
+        const client = getClient();
+        if (client) {
+          channel = client
+            .channel('tasks-changes')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => { fetchData(); })
+            .subscribe();
+        }
+      } catch {}
+    })();
+
+    // Fallback polling every 30s
+    interval = setInterval(fetchData, 30000);
+
+    return () => {
+      mounted = false;
+      if (channel) { try { channel.unsubscribe(); } catch {} }
+      clearInterval(interval);
+    };
   }, [router]);
 
   const copyBoth = async (task: Task) => {

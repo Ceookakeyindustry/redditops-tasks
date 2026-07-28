@@ -64,6 +64,7 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     let mounted = true;
     let interval: ReturnType<typeof setInterval>;
+    let channel: any = null;
 
     const fetchData = async () => {
       try {
@@ -73,20 +74,41 @@ export default function AdminDashboardPage() {
           return;
         }
         setAuthenticated(true);
-        const statsData = await getDashboardStats();
+        const [statsData, tasksData] = await Promise.all([getDashboardStats(), getTasks()]);
         if (!mounted) return;
         setStats(statsData);
-        const tasksData = await getTasks();
-        if (!mounted) return;
         setAllTasks(tasksData);
-        setRecentTasks(tasksData.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 5));
+        const sorted = [...(tasksData || [])].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setRecentTasks(sorted.slice(0, 5));
         setLoading(false);
       } catch {}
     };
 
     fetchData();
-    interval = setInterval(fetchData, 30000); // Auto-refresh every 30s
-    return () => { mounted = false; clearInterval(interval); };
+
+    // Supabase Realtime subscription
+    (async () => {
+      try {
+        const { getClient } = await import('@/lib/supabase');
+        const client = getClient();
+        if (client) {
+          channel = client
+            .channel('dashboard-changes')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => { fetchData(); })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'submissions' }, () => { fetchData(); })
+            .subscribe();
+        }
+      } catch {}
+    })();
+
+    // Fallback polling every 30s
+    interval = setInterval(fetchData, 30000);
+
+    return () => {
+      mounted = false;
+      if (channel) { try { channel.unsubscribe(); } catch {} }
+      clearInterval(interval);
+    };
   }, [router]);
 
   const handleLogout = async () => {

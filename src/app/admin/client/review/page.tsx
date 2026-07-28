@@ -47,6 +47,7 @@ export default function ClientReviewDashboard() {
   useEffect(() => {
     let mounted = true;
     let interval: ReturnType<typeof setInterval>;
+    let channel: any = null;
 
     const fetchData = async () => {
       try {
@@ -62,19 +63,39 @@ export default function ClientReviewDashboard() {
           return;
         }
         setAuthenticated(true);
-        const subs = await getSubmissions();
+        const [subs, allTasks] = await Promise.all([getSubmissions(), getTasks()]);
         if (!mounted) return;
         setSubmissions(subs);
-        const allTasks = await getTasks();
-        if (!mounted) return;
         setTasks(allTasks);
         setLoading(false);
       } catch {}
     };
 
     fetchData();
-    interval = setInterval(fetchData, 30000); // Auto-refresh every 30s
-    return () => { mounted = false; clearInterval(interval); };
+
+    // Supabase Realtime subscription
+    (async () => {
+      try {
+        const { getClient } = await import('@/lib/supabase');
+        const client = getClient();
+        if (client) {
+          channel = client
+            .channel('client-review-changes')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'submissions' }, () => { fetchData(); })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => { fetchData(); })
+            .subscribe();
+        }
+      } catch {}
+    })();
+
+    // Fallback polling every 30s
+    interval = setInterval(fetchData, 30000);
+
+    return () => {
+      mounted = false;
+      if (channel) { try { channel.unsubscribe(); } catch {} }
+      clearInterval(interval);
+    };
   }, [router]);
 
   const getTaskTitle = (taskId: string) => {

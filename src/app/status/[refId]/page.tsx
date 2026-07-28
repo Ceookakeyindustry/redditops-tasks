@@ -42,9 +42,31 @@ export default function SubmissionPortalPage() {
 
   useEffect(() => {
     loadSubmission();
-    const interval = setInterval(loadSubmission, 30000); // Auto-refresh every 30s
-    return () => clearInterval(interval);
-  }, [loadSubmission]);
+    let channel: any = null;
+    let interval: ReturnType<typeof setInterval>;
+
+    // Supabase Realtime subscription
+    (async () => {
+      try {
+        const { getClient } = await import('@/lib/supabase');
+        const client = getClient();
+        if (client) {
+          channel = client
+            .channel(`submission-${refId}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'submissions', filter: `ref_id=eq.${refId}` }, () => { loadSubmission(); })
+            .subscribe();
+        }
+      } catch {}
+    })();
+
+    // Fallback polling every 30s
+    interval = setInterval(loadSubmission, 30000);
+
+    return () => {
+      if (channel) { try { channel.unsubscribe(); } catch {} }
+      clearInterval(interval);
+    };
+  }, [loadSubmission, refId]);
 
   const getMissingScreenshotTypes = (): ScreenshotType[] => {
     if (!submission) return [];
