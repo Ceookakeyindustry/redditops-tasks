@@ -956,6 +956,25 @@ export default function AdminSubmissionsPage() {
                                     <Eye className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                                   </div>
                                 </button>
+                                {/* Remove screenshot button */}
+                                <button
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    if (!confirm('Remove this screenshot? Client and worker will also see it removed.')) return;
+                                    const updatedScreenshots = (submission.screenshots || []).filter((_, i) => i !== idx);
+                                    const { updateSubmission } = await import('@/lib/store');
+                                    await updateSubmission(submission.refId, { screenshots: updatedScreenshots });
+                                    setSubmissions(prev =>
+                                      prev.map(s =>
+                                        s.refId === submission.refId ? { ...s, screenshots: updatedScreenshots } : s
+                                      )
+                                    );
+                                  }}
+                                  className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-red-500/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500 z-10"
+                                  title="Remove screenshot (syncs to client & worker)"
+                                >
+                                  <X className="w-3 h-3 text-white" />
+                                </button>
                                 <a
                                   href={ss.url}
                                   download={ss.fileName || `screenshot-${ss.type}.png`}
