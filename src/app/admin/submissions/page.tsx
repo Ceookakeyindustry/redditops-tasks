@@ -24,6 +24,9 @@ import {
   Filter,
   Calendar,
   Palette,
+  Users,
+  UserCheck,
+  SendToBack,
 } from 'lucide-react';
 import type { Submission, Task, SubmissionStatus, Label } from '@/lib/types';
 import { formatDate, PRESET_REJECTION_REASONS, SCREENSHOT_TYPE_LABELS, SUBMISSION_STATUS_LABELS, SUBMISSION_STATUS_FLOW, getNextStatus } from '@/lib/types';
@@ -32,6 +35,7 @@ import LabelManager from '@/components/LabelManager';
 
 const ACTIVE_STATUSES = ['submitted', 'in_review', '24hr_pending', '24hr_done', '48hr_pending', '48hr_done', 'processing'];
 const HISTORY_STATUSES = ['paid', 'rejected'];
+const CLIENT_QUEUE_STATUSES = ['submitted', 'in_review', '24hr_pending', '24hr_done', '48hr_pending', '48hr_done', 'processing', 'paid', 'rejected']; // All statuses that could be sent to client
 
 export default function AdminSubmissionsPage() {
   const router = useRouter();
@@ -42,10 +46,12 @@ export default function AdminSubmissionsPage() {
 
   // View mode: active (pending/in-progress) or history (completed)
   // Initialize from URL query param ?view=history
-  const [viewMode, setViewMode] = useState<'active' | 'history'>(() => {
+  const [viewMode, setViewMode] = useState<'active' | 'history' | 'client-queue'>(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
-      return params.get('view') === 'history' ? 'history' : 'active';
+      if (params.get('view') === 'history') return 'history';
+      if (params.get('view') === 'client') return 'client-queue';
+      return 'active';
     }
     return 'active';
   });
@@ -79,6 +85,9 @@ export default function AdminSubmissionsPage() {
   const [customReason, setCustomReason] = useState('');
   const [adminNote, setAdminNote] = useState('');
   const [processingAction, setProcessingAction] = useState<string | null>(null);
+
+  // Client queue bulk send
+  const [sendingToClient, setSendingToClient] = useState(false);
 
   // ===== FETCH DATA =====
   const fetchData = useCallback(async () => {
@@ -278,7 +287,20 @@ export default function AdminSubmissionsPage() {
       // View mode filter
       if (viewMode === 'active') return ACTIVE_STATUSES.includes(s.status);
       if (viewMode === 'history') return HISTORY_STATUSES.includes(s.status);
+      if (viewMode === 'client-queue') {
+        return CLIENT_QUEUE_STATUSES.includes(s.status);
+      }
       return true;
+    })
+    .filter(s => {
+      // Client queue: filter by sent/not sent
+      if (viewMode === 'client-queue' && statusFilter === 'sent_to_client') {
+        return s.showToClient === true;
+      }
+      if (viewMode === 'client-queue' && statusFilter === 'not_sent') {
+        return !s.showToClient;
+      }
+      return true; // Pass through for active/history views
     })
     .filter(s => {
       // Status filter
@@ -320,13 +342,24 @@ export default function AdminSubmissionsPage() {
         (s.note && s.note.toLowerCase().includes(q))
       );
     })
-    .sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
+    .sort((a, b) => {
+      // Client queue: show sent-to-client first
+      if (viewMode === 'client-queue') {
+        if (a.showToClient && !b.showToClient) return -1;
+        if (!a.showToClient && b.showToClient) return 1;
+      }
+      return new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime();
+    });
 
-  const selectableSubmissions = filteredSubmissions.filter(s => s.status === 'submitted');
+  const selectableSubmissions = viewMode === 'client-queue'
+    ? filteredSubmissions.filter(s => true) // All submissions selectable in client queue
+    : filteredSubmissions.filter(s => s.status === 'submitted');
   const allSelected = selectableSubmissions.length > 0 && selectableSubmissions.every(s => selectedIds.has(s.refId));
 
   const activeCount = submissions.filter(s => ACTIVE_STATUSES.includes(s.status)).length;
   const historyCount = submissions.filter(s => HISTORY_STATUSES.includes(s.status)).length;
+  const clientQueueCount = submissions.filter(s => CLIENT_QUEUE_STATUSES.includes(s.status)).length;
+  const clientVisibleCount = submissions.filter(s => s.showToClient && CLIENT_QUEUE_STATUSES.includes(s.status)).length;
 
   // Collect all unique label names from visible submissions
   const allLabelNames = Array.from(new Set(
@@ -349,6 +382,12 @@ export default function AdminSubmissionsPage() {
         { key: 'in_review', label: 'In Review', color: '#3B82F6' },
         { key: 'screenshots', label: 'Screenshots', color: '#A855F7' },
         { key: 'processing', label: 'Processing', color: '#8B5CF6' },
+      ]
+    : viewMode === 'client-queue'
+    ? [
+        { key: 'all', label: 'All (Queue)', color: '#8B5CF6' },
+        { key: 'sent_to_client', label: 'Sent to Client', color: '#8B5CF6' },
+        { key: 'not_sent', label: 'Not Sent', color: '#6B7280' },
       ]
     : [
         { key: 'all', label: 'All History', color: '#8B5CF6' },
@@ -403,6 +442,27 @@ export default function AdminSubmissionsPage() {
             )}
           </button>
           <button
+            onClick={() => { setViewMode('client-queue'); setStatusFilter('all'); setLabelFilter('all'); setSelectedIds(new Set()); }}
+            className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
+              viewMode === 'client-queue'
+                ? 'bg-white text-[#8B5CF6] shadow-sm'
+                : 'text-gray-500 hover:text-gray-900'
+            }`}
+          >
+            <Send className="w-4 h-4" />
+            Client Queue
+            {clientVisibleCount > 0 && (
+              <span className="px-2 py-0.5 rounded-full text-xs bg-emerald-500/10 text-emerald-400">
+                {clientVisibleCount} sent
+              </span>
+            )}
+            {clientQueueCount > 0 && (
+              <span className="px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-500">
+                {clientQueueCount} total
+              </span>
+            )}
+          </button>
+          <button
             onClick={() => { setViewMode('history'); setStatusFilter('all'); setLabelFilter('all'); setSelectedIds(new Set()); }}
             className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
               viewMode === 'history'
@@ -429,6 +489,8 @@ export default function AdminSubmissionsPage() {
                 type="text"
                 placeholder={viewMode === 'active'
                   ? "Search by Reference ID, Discord, Task ID..."
+                  : viewMode === 'client-queue'
+                  ? "Search queue by Reference ID, Discord, Task ID..."
                   : "Search history by Reference ID, Discord, Task ID, Reddit link..."}
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
@@ -485,8 +547,8 @@ export default function AdminSubmissionsPage() {
           </div>
         </div>
 
-        {/* Bulk Actions Bar (Active view only) */}
-        {viewMode === 'active' && selectableSubmissions.length > 0 && (
+        {/* Bulk Actions Bar (Active + Client Queue views) */}
+        {(viewMode === 'active' || viewMode === 'client-queue') && selectableSubmissions.length > 0 && (
           <div className={`glass rounded-2xl p-4 mb-6 animate-slide-down transition-all ${selectedIds.size > 0 ? '' : 'opacity-60'}`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
@@ -498,7 +560,7 @@ export default function AdminSubmissionsPage() {
                     className="w-5 h-5 rounded-lg border-gray-300 text-[#8B5CF6] focus:ring-[#8B5CF6] cursor-pointer transition-all"
                   />
                   <span className="text-sm font-medium text-gray-700">
-                    {allSelected ? 'Deselect All' : 'Select All Pending'}
+                    {viewMode === 'client-queue' ? (allSelected ? 'Deselect All' : 'Select All') : (allSelected ? 'Deselect All' : 'Select All Pending')}
                   </span>
                 </label>
                 {selectedIds.size > 0 && (
@@ -514,30 +576,82 @@ export default function AdminSubmissionsPage() {
                 >
                   Clear
                 </button>
-                <button
-                  onClick={handleBulkApprove}
-                  disabled={bulkProcessing}
-                  className="btn-success px-4 py-2 text-sm"
-                >
-                  {bulkProcessing ? (
-                    <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                  ) : (
-                    <CheckCircle className="w-4 h-4" />
-                  )}
-                  Approve All
-                </button>
-                <button
-                  onClick={handleBulkReject}
-                  disabled={bulkProcessing}
-                  className="btn-danger px-4 py-2 text-sm"
-                >
-                  {bulkProcessing ? (
-                    <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                  ) : (
-                    <XCircle className="w-4 h-4" />
-                  )}
-                  Reject All
-                </button>
+
+                {/* Client Queue: Send to Client / Remove from Client */}
+                {viewMode === 'client-queue' && selectedIds.size > 0 && (
+                  <>
+                    <button
+                      onClick={async () => {
+                        setSendingToClient(true);
+                        const { updateSubmission } = await import('@/lib/store');
+                        const selected = filteredSubmissions.filter(s => selectedIds.has(s.refId) && !s.showToClient);
+                        for (const sub of selected) {
+                          await updateSubmission(sub.refId, { showToClient: true });
+                        }
+                        setSubmissions(prev => prev.map(s => selectedIds.has(s.refId) ? { ...s, showToClient: true } : s));
+                        setSelectedIds(new Set());
+                        setSendingToClient(false);
+                      }}
+                      disabled={sendingToClient}
+                      className="px-4 py-2 text-sm inline-flex items-center gap-1.5 rounded-xl bg-[#8B5CF6]/10 text-[#8B5CF6] border border-[#8B5CF6]/20 hover:bg-[#8B5CF6]/20 transition-all font-medium"
+                    >
+                      {sendingToClient ? (
+                        <div className="w-4 h-4 rounded-full border-2 border-[#8B5CF6]/30 border-t-[#8B5CF6] animate-spin" />
+                      ) : (
+                        <Send className="w-4 h-4" />
+                      )}
+                      Send to Client
+                    </button>
+                    <button
+                      onClick={async () => {
+                        setSendingToClient(true);
+                        const { updateSubmission } = await import('@/lib/store');
+                        const selected = filteredSubmissions.filter(s => selectedIds.has(s.refId) && s.showToClient);
+                        for (const sub of selected) {
+                          await updateSubmission(sub.refId, { showToClient: false });
+                        }
+                        setSubmissions(prev => prev.map(s => selectedIds.has(s.refId) ? { ...s, showToClient: false } : s));
+                        setSelectedIds(new Set());
+                        setSendingToClient(false);
+                      }}
+                      disabled={sendingToClient}
+                      className="btn-secondary px-4 py-2 text-sm"
+                    >
+                      <XCircle className="w-4 h-4" />
+                      Remove from Client
+                    </button>
+                  </>
+                )}
+
+                {/* Active view: bulk approve/reject */}
+                {viewMode !== 'client-queue' && (
+                  <>
+                    <button
+                      onClick={handleBulkApprove}
+                      disabled={bulkProcessing}
+                      className="btn-success px-4 py-2 text-sm"
+                    >
+                      {bulkProcessing ? (
+                        <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                      ) : (
+                        <CheckCircle className="w-4 h-4" />
+                      )}
+                      Approve All
+                    </button>
+                    <button
+                      onClick={handleBulkReject}
+                      disabled={bulkProcessing}
+                      className="btn-danger px-4 py-2 text-sm"
+                    >
+                      {bulkProcessing ? (
+                        <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                      ) : (
+                        <XCircle className="w-4 h-4" />
+                      )}
+                      Reject All
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -554,11 +668,13 @@ export default function AdminSubmissionsPage() {
               )}
             </div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              {viewMode === 'history' ? 'No submission history' : 'No active submissions'}
+              {viewMode === 'history' ? 'No submission history' : viewMode === 'client-queue' ? 'No submissions in queue' : 'No active submissions'}
             </h3>
             <p className="text-gray-500">
               {viewMode === 'history'
                 ? 'Completed submissions (paid/rejected) will appear here for permanent record.'
+                : viewMode === 'client-queue'
+                ? 'Toggle "Show to Client" on submissions to send them here for the client to review.'
                 : submissions.length === 0
                   ? 'No submissions have been made yet.'
                   : 'No submissions match your filters.'}
@@ -577,8 +693,8 @@ export default function AdminSubmissionsPage() {
                 <div className="flex flex-col lg:flex-row lg:items-start gap-4">
                   {/* Checkbox + Info */}
                   <div className="flex items-start gap-4 flex-1 min-w-0">
-                    {/* Checkbox for bulk actions (active view only) */}
-                    {viewMode === 'active' && submission.status === 'submitted' && (
+                    {/* Checkbox for bulk actions */}
+                    {(viewMode === 'active' && submission.status === 'submitted') || viewMode === 'client-queue' ? (
                       <label className="mt-1 cursor-pointer flex-shrink-0">
                         <input
                           type="checkbox"
@@ -587,8 +703,9 @@ export default function AdminSubmissionsPage() {
                           className="w-5 h-5 rounded-lg border-gray-300 text-[#8B5CF6] focus:ring-[#8B5CF6] cursor-pointer transition-all"
                         />
                       </label>
-                    )}
-                    {viewMode === 'active' && submission.status !== 'submitted' && <div className="w-5 flex-shrink-0" />}
+                    ) : viewMode === 'active' && submission.status !== 'submitted' ? (
+                      <div className="w-5 flex-shrink-0" />
+                    ) : null}
 
                     <div className="min-w-0 flex-1">
                       {/* Ref ID + Status */}
@@ -921,8 +1038,8 @@ export default function AdminSubmissionsPage() {
                   </div>
                 </div>
 
-                {/* Active view: Labels + Client Review Toggle */}
-                {viewMode === 'active' && (
+                {/* Labels + Client Review Toggle (Active and Client Queue views) */}
+                {(viewMode === 'active' || viewMode === 'client-queue') && (
                   <div className="mt-4 pt-4 border-t border-gray-200">
                     <div className="flex items-center gap-4 flex-wrap">
                       {/* Label Manager */}
@@ -944,28 +1061,32 @@ export default function AdminSubmissionsPage() {
                       </div>
 
                       {/* Client Review Toggle */}
-                      {(submission.status === 'submitted' || submission.status === 'in_review') && (
-                        <label className="flex items-center gap-2 cursor-pointer group">
-                          <input
-                            type="checkbox"
-                            checked={submission.showToClient || false}
-                            onChange={async () => {
-                              const { updateSubmission } = await import('@/lib/store');
-                              const newVal = !submission.showToClient;
-                              await updateSubmission(submission.refId, { showToClient: newVal });
-                              setSubmissions(prev =>
-                                prev.map(s =>
-                                  s.refId === submission.refId ? { ...s, showToClient: newVal } : s
-                                )
-                              );
-                            }}
-                            className="rounded border-gray-300 text-[#8B5CF6] focus:ring-[#8B5CF6]"
-                          />
-                          <span className="text-xs text-gray-400 group-hover:text-gray-900 transition-colors">
-                            Show to Client
+                      <label className="flex items-center gap-2 cursor-pointer group">
+                        <input
+                          type="checkbox"
+                          checked={submission.showToClient || false}
+                          onChange={async () => {
+                            const { updateSubmission } = await import('@/lib/store');
+                            const newVal = !submission.showToClient;
+                            await updateSubmission(submission.refId, { showToClient: newVal });
+                            setSubmissions(prev =>
+                              prev.map(s =>
+                                s.refId === submission.refId ? { ...s, showToClient: newVal } : s
+                              )
+                            );
+                          }}
+                          className="rounded border-gray-300 text-[#8B5CF6] focus:ring-[#8B5CF6]"
+                        />
+                        <span className={`text-xs transition-colors ${submission.showToClient ? 'text-emerald-400 font-medium' : 'text-gray-400 group-hover:text-gray-900'}`}>
+                          {submission.showToClient ? 'Sent to Client ✓' : 'Show to Client'}
+                        </span>
+                        {submission.showToClient && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            <UserCheck className="w-3 h-3" />
+                            Client View
                           </span>
-                        </label>
-                      )}
+                        )}
+                      </label>
                     </div>
                   </div>
                 )}

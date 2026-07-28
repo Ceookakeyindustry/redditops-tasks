@@ -65,7 +65,8 @@ export default function ClientReviewDashboard() {
         setAuthenticated(true);
         const [subs, allTasks] = await Promise.all([getSubmissions(), getTasks()]);
         if (!mounted) return;
-        setSubmissions(subs);
+        // Only show submissions the admin has explicitly sent to the client
+        setSubmissions(subs.filter((s: Submission) => s.showToClient === true));
         setTasks(allTasks);
         setLoading(false);
       } catch {}

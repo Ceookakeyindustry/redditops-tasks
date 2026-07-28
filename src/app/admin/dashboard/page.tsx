@@ -22,6 +22,7 @@ import {
   ExternalLink,
   Shield,
   History,
+  Send,
 } from 'lucide-react';
 import type { DashboardStats, Task, Submission } from '@/lib/types';
 import { formatPayment, formatDate } from '@/lib/types';
@@ -382,6 +383,13 @@ export default function AdminDashboardPage() {
                 >
                   <ExternalLink className="w-4 h-4 text-emerald-400" />
                   <span className="text-sm text-gray-900 group-hover:text-[#8B5CF6]">Worker Status Portal</span>
+                </Link>
+                <Link
+                  href="/admin/submissions?view=client"
+                  className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-200 hover:border-[#8B5CF6]/30 transition-all group"
+                >
+                  <Send className="w-4 h-4 text-emerald-400" />
+                  <span className="text-sm text-gray-900 group-hover:text-[#8B5CF6]">Client Queue — Send Tasks</span>
                 </Link>
                 <Link
                   href="/admin/client/review"
