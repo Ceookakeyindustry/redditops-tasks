@@ -56,6 +56,14 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('Storage upload error:', error);
+      // Check if the bucket doesn't exist
+      const errMsg = error.message || '';
+      if (errMsg.includes('bucket') || errMsg.includes('not found') || error.statusCode === '404') {
+        return NextResponse.json({
+          error: 'Storage bucket "screenshot-proofs" not found. Please create it in your Supabase dashboard under Storage > Create bucket. Name it exactly: screenshot-proofs, set it to Public.',
+          storageError: true,
+        }, { status: 400 });
+      }
       return NextResponse.json({ error: 'Failed to upload file' }, { status: 500 });
     }
 
